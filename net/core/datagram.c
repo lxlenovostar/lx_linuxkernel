@@ -244,13 +244,26 @@ EXPORT_SYMBOL(skb_kill_datagram);
  *
  *	Note: the iovec is modified during the copy.
  */
+/*
+ The buffer is divided into two parts:
+    1. Linear data area
+    2. Paged data area or shared data area
+ */
 int skb_copy_datagram_iovec(const struct sk_buff *skb, int offset,
 			    struct iovec *to, int len)
 {
+    /* 
+      We first calculate linear data area length. 
+      skb->len is the total length of the buffer, and 
+      skb->data_len is the total length of the paged data area.
+    */
 	int start = skb_headlen(skb);
 	int i, copy = start - offset;
 
 	/* Copy header. */
+    /*
+       copy from Linear data area. 
+    */
 	if (copy > 0) {
 		if (copy > len)
 			copy = len;
@@ -267,13 +280,19 @@ int skb_copy_datagram_iovec(const struct sk_buff *skb, int offset,
 
 		BUG_TRAP(start <= offset + len);
 
-		end = start + skb_shinfo(skb)->frags[i].size;
+		end = start + skb_shinfo(skb)->frags[i].size;   /* calculate the total length of the buffer including the fragment */
+        /* check if there is anything that can be copied from current fragment */
 		if ((copy = end - offset) > 0) {
 			int err;
 			u8  *vaddr;
 			skb_frag_t *frag = &skb_shinfo(skb)->frags[i];
 			struct page *page = frag->page;
 
+           /*
+                If we have data to be copied from a fragment and the number of bytes remaining 
+                in the page to be copied is more than the requested length, we adjust the amount 
+                that can be copied to the requested length.
+            */
 			if (copy > len)
 				copy = len;
 			vaddr = kmap(page);
@@ -286,9 +305,10 @@ int skb_copy_datagram_iovec(const struct sk_buff *skb, int offset,
 				return 0;
 			offset += copy;
 		}
-		start = end;
+		start = end;    /* the new length is calculated as the cumulative length of the current fragment starting from the linear data area */
 	}
 
+    /* IP 分片 */
 	if (skb_shinfo(skb)->frag_list) {
 		struct sk_buff *list = skb_shinfo(skb)->frag_list;
 
@@ -301,6 +321,7 @@ int skb_copy_datagram_iovec(const struct sk_buff *skb, int offset,
 			if ((copy = end - offset) > 0) {
 				if (copy > len)
 					copy = len;
+                /* recursively */
 				if (skb_copy_datagram_iovec(list,
 							    offset - start,
 							    to, copy))
