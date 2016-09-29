@@ -826,10 +826,10 @@ allocate a buffer that fits into a single page. Otherwise, we get a buffer of le
 					/* We can extend the last page
 					 * fragment. */
 					merge = 1;
-                /*  a complete new socket buffer must be allocated. */
 				} else if (i == MAX_SKB_FRAGS ||
 					   (!i &&
 					   !(sk->sk_route_caps & NETIF_F_SG))) {
+                        /*  a complete new socket buffer must be allocated. */
 					/* Need to add new fragment and cannot
 					 * do this because interface is non-SG,
 					 * or because all the page slots are
@@ -841,6 +841,7 @@ allocate a buffer that fits into a single page. Otherwise, we get a buffer of le
 					tcp_mark_push(tp, skb);
 					goto new_segment;
 				} else if (page) {
+                    /*  a new page is needed */
 					if (off == PAGE_SIZE) {
 						put_page(page);
 						TCP_PAGE(sk) = page = NULL;
