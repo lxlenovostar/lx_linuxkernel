@@ -639,6 +639,11 @@ ssize_t tcp_sendpage(struct socket *sock, struct page *page, int offset,
 #define TCP_PAGE(sk)	(sk->sk_sndmsg_page)
 #define TCP_OFF(sk)	(sk->sk_sndmsg_off)
 
+/*
+    select_size() returns 1 page of data in case our hardware is capable of doing scatter-gather, 
+    given that the complete segment can be accommodated in paged area of single sk_buff. In all 
+    other cases, 1 mss is returned for the linear data area of sk_buff.
+*/
 static inline int select_size(struct sock *sk)
 {
 	struct tcp_sock *tp = tcp_sk(sk);
@@ -648,10 +653,15 @@ static inline int select_size(struct sock *sk)
 	if (sk->sk_route_caps & NETIF_F_SG) {
 		if (sk_can_gso(sk))
 			tmp = 0;
-		else {  /* calculate the length of the buffer */
+		else {  
+            /* MAX_TCP_HEADER is the maximum number of bytes occupied by TCP + IP + link layer
+                headers along with options */
+            /*
+                1 page — (MAX_TCP_HEADER + size  of object skb_shared_info) by using macro SKB_MAX_HEAD
+            */ 
+            /* calculate the length of the buffer */
 			int pgbreak = SKB_MAX_HEAD(MAX_TCP_HEADER); /*the actual TCP payload bytes that can be accommodated within a page.*/
 
-            /* 此段未理解 */
 			if (tmp >= pgbreak &&
 			    tmp <= pgbreak + (MAX_SKB_FRAGS - 1) * PAGE_SIZE)
 				tmp = pgbreak;
@@ -700,6 +710,10 @@ set for the socket.*/
 		if ((err = sk_stream_wait_connect(sk, &timeo)) != 0)
 			goto out_err;
 
+    /*
+        The SOCK_ASYNC_NOSPACE bit in flags is cleared to indicate that this socket is not currently
+        waiting for more memory.
+     */
 	/* This should be in poll */
 	clear_bit(SOCK_ASYNC_NOSPACE, &sk->sk_socket->flags);
 
@@ -714,9 +728,13 @@ set for the socket.*/
 	err = -EPIPE;
 	if (sk->sk_err || (sk->sk_shutdown & SEND_SHUTDOWN))
 		goto do_error;
-
+    
+    /*
+        The IO vector structure is the mechanism where data is retrieved from user space into kernel
+        space. Iovlen is the number of iov buffers queued up by the socket send call.
+    */
 	while (--iovlen >= 0) {
-		int seglen = iov->iov_len;  /*length ot the buffer */
+		int seglen = iov->iov_len;  /*length of the buffer */
 		unsigned char __user *from = iov->iov_base; /* a pointer to the user buffer to be segmented */
 
 		iov++;
@@ -759,11 +777,12 @@ allocate a buffer that fits into a single page. Otherwise, we get a buffer of le
 				if (sk->sk_route_caps & NETIF_F_ALL_CSUM)
 					skb->ip_summed = CHECKSUM_PARTIAL;
 
-				skb_entail(sk, skb);    /*  skb_entail sets up the flags and sequence numbers in the TCP control
-block and puts the new skb on the write queue. */
-				copy = size_goal;   /* copy is the amount of data to copy to the
-segment. It is set to mss_now, the most recent negotiated value of MSS, which is the best
-indicator of segment size at this point.*/
+				/*  skb_entail sets up the flags and sequence numbers in the TCP control
+                    block and puts the new skb on the write queue. */
+				skb_entail(sk, skb);
+
+				/* copy is the amount of data to copy to the segment. */
+				copy = size_goal;   
 			}
 
 			/* Try to append data to the end of skb. */
