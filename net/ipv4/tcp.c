@@ -751,8 +751,9 @@ set for the socket.*/
 			    (copy = size_goal - skb->len) <= 0) {
 
 new_segment:
-				/* Allocate new segment. If the interface is SG,
-				 * allocate skb fitting to single page.
+				/* 
+                    Allocate new segment. If the interface is SG,
+				    allocate skb fitting to single page.
 				 */
 				if (!sk_stream_memory_free(sk))
 					goto wait_for_sndbuf;
