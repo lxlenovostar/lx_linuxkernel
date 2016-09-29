@@ -661,13 +661,20 @@ static inline int select_size(struct sock *sk)
 	return tmp;
 }
 
+/*
+    tcp_sendmsg collects all the TCP header information possible, copies the data into socket
+    buffers, and queues the socket buffers for transmission. 
+ */
 int tcp_sendmsg(struct kiocb *iocb, struct socket *sock, struct msghdr *msg,
 		size_t size)
 {
 	struct sock *sk = sock->sk;
+    /* The variable iov is to retrieve the IO vector pointer in the message header structure in the
+argument msg. */
 	struct iovec *iov;
-	struct tcp_sock *tp = tcp_sk(sk);
+	struct tcp_sock *tp = tcp_sk(sk);   /* TCP options */
 	struct sk_buff *skb;
+    /* iovlen is set to the number of elements in the iovec*/
 	int iovlen, flags;
 	int mss_now, size_goal;
 	int err, copied;
@@ -677,8 +684,17 @@ int tcp_sendmsg(struct kiocb *iocb, struct socket *sock, struct msghdr *msg,
 	TCP_CHECK_TIMER(sk);
 
 	flags = msg->msg_flags;
+    /* The value of the SO_SNDTIMEO option is put in timeo unless the MSG_DONTWAIT flag was
+set for the socket.*/
 	timeo = sock_sndtimeo(sk, flags & MSG_DONTWAIT);
 
+    /*
+        The next thing tcp_sendmsg does is wait for a connection to be established before sending the
+        packet. The state of the connection for this open socket is checked, and if the connection is not
+        already in the TCPF_ESTABLISHED or TCPF_CLOSE_WAIT state, TCP is not ready to send
+        data so it must wait for a connection to be established. The value of the timeout set with the
+        SO_SNDTIMEO socket option is passed into the wait_for_tcp_connect function.
+    */
 	/* Wait for a connection to finish. */
 	if ((1 << sk->sk_state) & ~(TCPF_ESTABLISHED | TCPF_CLOSE_WAIT))
 		if ((err = sk_stream_wait_connect(sk, &timeo)) != 0)
