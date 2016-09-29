@@ -778,8 +778,10 @@ allocate a buffer that fits into a single page. Otherwise, we get a buffer of le
 				if (sk->sk_route_caps & NETIF_F_ALL_CSUM)
 					skb->ip_summed = CHECKSUM_PARTIAL;
 
-				/*  skb_entail sets up the flags and sequence numbers in the TCP control
-                    block and puts the new skb on the write queue. */
+				/*  
+                    skb_entail sets up the flags and sequence numbers in the TCP control
+                    block and puts the new skb on the write queue. 
+                */
 				skb_entail(sk, skb);
 
 				/* copy is the amount of data to copy to the segment. */
@@ -791,19 +793,27 @@ allocate a buffer that fits into a single page. Otherwise, we get a buffer of le
 				copy = seglen; 
 
 			/* Where to copy to? */
+            /*
+                skb_tailroom returns the amount of room in the end of the skb, 
+                and copy is set to the amount of available space if there is any.
+            */
 			if (skb_tailroom(skb) > 0) {
 				/* We have some space in skb head. Superb! */
 				if (copy > skb_tailroom(skb))
 					copy = skb_tailroom(skb);
-				if ((err = skb_add_data(skb, from, copy)) != 0) /* skb_add_data copies the data to the skb and calculates the
-checksum while it is doing the copy*/
+                
+				/* 
+                    skb_add_data copies the data to the skb and calculates the
+                    checksum while it is doing the copy
+                */
+				if ((err = skb_add_data(skb, from, copy)) != 0) 
 					goto do_fault;
 			} else {
                 /*
-                If there was no tailroom in the main part of the socket buffer, skb, we try to 
-                find room in the last fragment attached to skb. If there is no room in the fragment, 
-                we allocate a new page and attach it by putting a pointer to it at the end of the 
-                frags array in the shared info part of the skb. 
+                    If there was no tailroom in the main part of the socket buffer, skb, we try to 
+                    find room in the last fragment attached to skb. If there is no room in the fragment, 
+                    we allocate a new page and attach it by putting a pointer to it at the end of the 
+                    frags array in the shared info part of the skb. 
                 */
 				int merge = 0;  /* merge is set to one if there is any room in the last page */
 				int i = skb_shinfo(skb)->nr_frags;  /*i is set to the number of frags already in the socket buffer.*/
@@ -816,6 +826,7 @@ checksum while it is doing the copy*/
 					/* We can extend the last page
 					 * fragment. */
 					merge = 1;
+                /*  a complete new socket buffer must be allocated. */
 				} else if (i == MAX_SKB_FRAGS ||
 					   (!i &&
 					   !(sk->sk_route_caps & NETIF_F_SG))) {
@@ -824,8 +835,8 @@ checksum while it is doing the copy*/
 					 * or because all the page slots are
 					 * busy. */
                     /*
-                     we call tcp_mark_push to set the TCPCB_FLAG_PSH flag in the control buffer for this connection. 
-                     This will mean that the PSH flag will be set in the TCP header of the current skb
+                        we call tcp_mark_push to set the TCPCB_FLAG_PSH flag in the control buffer for this connection. 
+                        This will mean that the PSH flag will be set in the TCP header of the current skb.
                      */
 					tcp_mark_push(tp, skb);
 					goto new_segment;
