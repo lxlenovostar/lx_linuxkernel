@@ -154,11 +154,13 @@ struct sk_buff *__alloc_skb(unsigned int size, gfp_t gfp_mask,
 	cache = fclone ? skbuff_fclone_cache : skbuff_head_cache;
 
 	/* Get the HEAD */
+    /* takes an sk_buff data structure */
 	skb = kmem_cache_alloc_node(cache, gfp_mask & ~__GFP_DMA, node);
 	if (!skb)
 		goto out;
 
 	size = SKB_DATA_ALIGN(size);
+    /* gets a data buffer */
 	data = kmalloc_node_track_caller(size + sizeof(struct skb_shared_info),
 			gfp_mask, node);
 	if (!data)
