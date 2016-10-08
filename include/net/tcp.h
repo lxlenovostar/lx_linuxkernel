@@ -48,6 +48,9 @@ extern struct inet_hashinfo tcp_hashinfo;
 extern atomic_t tcp_orphan_count;
 extern void tcp_time_wait(struct sock *sk, int state, int timeo);
 
+/*
+    TCP 20头+40TCP选项; IP 20头+40选项 
+ */
 #define MAX_TCP_HEADER	(128 + MAX_HEADER)  //最大的TCP包头
 
 /* 

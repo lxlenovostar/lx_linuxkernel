@@ -654,8 +654,11 @@ static inline int select_size(struct sock *sk)
 		if (sk_can_gso(sk))
 			tmp = 0;
 		else {  
-            /* MAX_TCP_HEADER is the maximum number of bytes occupied by TCP + IP + link layer
-                headers along with options */
+            /*
+                MAX_TCP_HEADER is the sum of maximum length of TCP header(64) + maximum
+                length of IP header(64) + Maximum length of link layer(LL_MAX_HEADER)
+                #define MAX_TCP_HEADER	(128 + MAX_HEADER)  
+            */
             /*
                 1 page — (MAX_TCP_HEADER + size  of object skb_shared_info) by using macro SKB_MAX_HEAD
             */ 
