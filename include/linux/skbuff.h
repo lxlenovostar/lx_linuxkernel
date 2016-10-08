@@ -142,7 +142,7 @@ struct skb_frag_struct {
  */
 struct skb_shared_info {
 	atomic_t	dataref;
-	unsigned short	nr_frags;
+	unsigned short	nr_frags;   /* reflects the number of Scatter/Gather I/O buffers */
 	unsigned short	gso_size;
 	/* Warning: this field is not always filled in (UFO)! */
 	unsigned short	gso_segs;
@@ -268,12 +268,9 @@ struct sk_buff {
 	char			cb[48];
 
     /*
-        len : This field keeps the total length of the data associated with the sk_buff
-        (packet length at any point of time).
-        data _ len : This field is used only when we have nonlinear data (paged data)
-        associated with the sk_buff. This field indicates the portion of the total packet
-        length that is contained as paged data, which means that the linear data
-        length will be skb→len − skb→data_len. 
+        len: This is the size of the block of data in the buffer. This length includes both the data in the main buffer
+        (i.e., the one pointed to by head) and the data in the fragments.
+        data_len accounts only for the size of the data in the fragments.
     */
 	unsigned int		len,
 				data_len;
@@ -336,6 +333,12 @@ struct sk_buff {
 	sk_buff_data_t		end;
 	unsigned char		*head,
 				*data;
+    /*
+        This field represents the total size of the buffer, including the sk_buff structure itself. 
+        It is initially set by the function alloc_skb to len+sizeof(sk_buff) when the buffer is 
+        allocated for a requested data space of len bytes.
+        和 skb->len 相比多了 sk_buff结构体自身的长度。
+     */
 	unsigned int		truesize;
 	atomic_t		users;
 };
