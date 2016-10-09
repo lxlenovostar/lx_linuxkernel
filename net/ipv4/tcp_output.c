@@ -450,18 +450,29 @@ static void tcp_syn_build_options(__be32 *ptr, int mss, int ts, int sack,
  * We are working here with either a clone of the original
  * SKB, or a fresh unique copy made by the retransmit engine.
  */
+/**
+ the function tcp_transmit_skb does the actual packet transmission. It sends the packets 
+ that are queued to the socket. It can be called from anywhere in TCP state processing 
+ when there is a request to send a segment. Earlier, we saw how tcp_sendmsg readied the 
+ segments for transmission and queued them to the socket's write queue.
+ 主要工作就是：组建TCP包头和发送到IP层
+ */
 static int tcp_transmit_skb(struct sock *sk, struct sk_buff *skb, int clone_it, gfp_t gfp_mask)
 {
 	const struct inet_connection_sock *icsk = inet_csk(sk);
 	struct inet_sock *inet;
+    /* tp points to the TCP options structure. */
 	struct tcp_sock *tp;
+    /* tcb points to the TCP control buffer containing most of the flags as well as the partially constructed TCP header.*/
 	struct tcp_skb_cb *tcb;
 	int tcp_header_size;
 #ifdef CONFIG_TCP_MD5SIG
 	struct tcp_md5sig_key *md5;
 	__u8 *md5_hash_location;
 #endif
+    /* th is a pointer to the TCP header */
 	struct tcphdr *th;
+    /* sysctl_flags is for some critical parameters configured via sysctl and setsockopt calls. */
 	int sysctl_flags;
 	int err;
 
