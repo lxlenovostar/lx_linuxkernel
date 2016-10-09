@@ -674,6 +674,7 @@ static inline int select_size(struct sock *sk)
 	return tmp;
 }
 
+//fuck
 /*
     tcp_sendmsg collects all the TCP header information possible, copies the data into socket
     buffers, and queues the socket buffers for transmission. 

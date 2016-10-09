@@ -917,6 +917,9 @@ static inline unsigned char *__skb_put(struct sk_buff *skb, unsigned int len)
  *	exceed the total buffer size the kernel will panic. A pointer to the
  *	first byte of the extra data is returned.
  */
+/**
+    用于TCP和UDP的负载拷贝
+*/
 static inline unsigned char *skb_put(struct sk_buff *skb, unsigned int len)
 {
 	unsigned char *tmp = skb_tail_pointer(skb);
@@ -1029,6 +1032,10 @@ static inline int skb_tailroom(const struct sk_buff *skb)
  *
  *	Increase the headroom of an empty &sk_buff by reducing the tail
  *	room. This is only allowed for an empty buffer.
+ */
+/**
+ * 此函数用于加入协议头和aligned on some boundary. 
+ * The function shifts the data and tail pointers that mark the beginning and the end of the payload.
  */
 static inline void skb_reserve(struct sk_buff *skb, int len)
 {
@@ -1437,6 +1444,9 @@ static inline int skb_add_data(struct sk_buff *skb,
 {
 	const int off = skb->len;
 
+    /**
+     * The checksum in csum is not valid. This can be due to various reasons.
+     */
 	if (skb->ip_summed == CHECKSUM_NONE) {
 		int err = 0;
 		__wsum csum = csum_and_copy_from_user(from, skb_put(skb, copy),

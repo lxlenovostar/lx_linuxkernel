@@ -1247,6 +1247,10 @@ static inline struct sk_buff *sk_stream_alloc_pskb(struct sock *sk,
 			 * Make sure that we have exactly size bytes
 			 * available to the caller, no more, no less.
 			 */
+            /**
+             * skb_tailroom : Return the number of bytes of free space at the tail of an sk_buff
+	         * skb->end - skb->tail;
+             */
 			skb_reserve(skb, skb_tailroom(skb) - size);
 			return skb;
 		}
