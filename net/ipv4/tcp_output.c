@@ -957,6 +957,9 @@ unsigned int tcp_sync_mss(struct sock *sk, u32 pmtu)
  * cannot be large. However, taking into account rare use of URG, this
  * is not a big flaw.
  */
+/**
+ * TODO: need understand.
+ */
 unsigned int tcp_current_mss(struct sock *sk, int large_allowed)
 {
 	struct tcp_sock *tp = tcp_sk(sk);
