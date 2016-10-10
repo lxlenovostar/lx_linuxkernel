@@ -1455,6 +1455,9 @@ static inline int skb_add_data(struct sk_buff *skb,
 			skb->csum = csum_block_add(skb->csum, csum, off);
 			return 0;
 		}
+    /**
+     * TODO: need understand 为什么这里是skb_put, 而不是skb_push.
+     */
 	} else if (!copy_from_user(skb_put(skb, copy), from, copy))
 		return 0;
 

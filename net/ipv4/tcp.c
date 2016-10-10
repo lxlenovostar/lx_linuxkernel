@@ -639,6 +639,7 @@ ssize_t tcp_sendpage(struct socket *sock, struct page *page, int offset,
 #define TCP_PAGE(sk)	(sk->sk_sndmsg_page)
 #define TCP_OFF(sk)	(sk->sk_sndmsg_off)
 
+x
 /*
     select_size() returns 1 page of data in case our hardware is capable of doing scatter-gather, 
     given that the complete segment can be accommodated in paged area of single sk_buff. In all 
@@ -797,8 +798,8 @@ allocate a buffer that fits into a single page. Otherwise, we get a buffer of le
 
 			/* Where to copy to? */
             /*
-                skb_tailroom returns the amount of room in the end of the skb, 
-                and copy is set to the amount of available space if there is any.
+              skb_tailroom returns the amount of room in the end of the skb, 
+              and copy is set to the amount of available space if there is any.
             */
 			if (skb_tailroom(skb) > 0) {
 				/* We have some space in skb head. Superb! */
@@ -806,8 +807,8 @@ allocate a buffer that fits into a single page. Otherwise, we get a buffer of le
 					copy = skb_tailroom(skb);
                 
 				/* 
-                    skb_add_data copies the data to the skb and calculates the
-                    checksum while it is doing the copy
+                 skb_add_data copies the data to the skb and calculates the
+                 checksum while it is doing the copy
                 */
 				if ((err = skb_add_data(skb, from, copy)) != 0) 
 					goto do_fault;

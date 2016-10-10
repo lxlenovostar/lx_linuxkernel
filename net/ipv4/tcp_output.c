@@ -460,6 +460,7 @@ static void tcp_syn_build_options(__be32 *ptr, int mss, int ts, int sack,
 static int tcp_transmit_skb(struct sock *sk, struct sk_buff *skb, int clone_it, gfp_t gfp_mask)
 {
 	const struct inet_connection_sock *icsk = inet_csk(sk);
+    /* inet points to the inet options structure. */
 	struct inet_sock *inet;
     /* tp points to the TCP options structure. */
 	struct tcp_sock *tp;
@@ -540,6 +541,9 @@ static int tcp_transmit_skb(struct sock *sk, struct sk_buff *skb, int clone_it, 
 		tcp_header_size += TCPOLEN_MD5SIG_ALIGNED;
 #endif
 
+    /**
+     * Now that we know the size of the TCP header, we adjust the skb to allow for sufficient space.
+     */   
 	skb_push(skb, tcp_header_size);
 	skb_reset_transport_header(skb);
 	skb_set_owner_w(skb, sk);
@@ -558,6 +562,10 @@ static int tcp_transmit_skb(struct sock *sk, struct sk_buff *skb, int clone_it, 
     *(((__be16 *)th) + 6)	= htons(((tcp_header_size >> 2) << 12) |
 					tcb->flags); 
 
+    /*
+     The advertised window size is determined. If this packet is a SYN packet; otherwise, 
+     the window size is scaled by calling tcp_select_window.
+     */
 	if (unlikely(tcb->flags & TCPCB_FLAG_SYN)) {
 		/* RFC1323: The window in SYN & SYN/ACK segments
 		 * is never scaled.
@@ -569,6 +577,9 @@ static int tcp_transmit_skb(struct sock *sk, struct sk_buff *skb, int clone_it, 
 	th->check		= 0;
 	th->urg_ptr		= 0;
 
+    /*
+     If urgent mode is set, we calculate the urgent pointer and set the URG flag in the TCP header.
+     */
 	if (unlikely(tp->urg_mode &&
 		     between(tp->snd_up, tcb->seq+1, tcb->seq+0xFFFF))) {
 		th->urg_ptr		= htons(tp->snd_up-tcb->seq);
@@ -596,6 +607,11 @@ static int tcp_transmit_skb(struct sock *sk, struct sk_buff *skb, int clone_it, 
 					     md5 ? &md5_hash_location :
 #endif
 					     NULL);
+        /*
+         We call the TCP_ECN_send to send explicit congestion notification. This TCP modification
+         [RFC3168] changes the TCP header to make it slightly incompatible with the header specified by
+         RFC 793.
+         */
 		TCP_ECN_send(sk, skb, tcp_header_size);
 	}
 
@@ -611,6 +627,11 @@ static int tcp_transmit_skb(struct sock *sk, struct sk_buff *skb, int clone_it, 
 	}
 #endif
 
+    /*
+     We calculate the checksum. We check the flags to see if we are sending an ACK or 
+     sending data and we update the delayed acknowledgment status depending on whether 
+     we are sending data or an ACK. 
+     */
 	icsk->icsk_af_ops->send_check(sk, skb->len, skb);
 
 	if (likely(tcb->flags & TCPCB_FLAG_ACK))
@@ -619,9 +640,16 @@ static int tcp_transmit_skb(struct sock *sk, struct sk_buff *skb, int clone_it, 
 	if (skb->len != tcp_header_size)
 		tcp_event_data_sent(tp, skb, sk);
 
+    /*
+     we increment the counter to indicate the number of TCP segments that have been sent.
+     */
 	if (after(tcb->end_seq, tp->snd_nxt) || tcb->seq == tcb->end_seq)
 		TCP_INC_STATS(TCP_MIB_OUTSEGS);
 
+    /*
+     Now we call the actual transmission function to send this segment. The segment will be queued
+     up for processing by the next stage whether the packet has an internal or an external destination.
+     */
 	err = icsk->icsk_af_ops->queue_xmit(skb, 0);
 	if (likely(err <= 0))
 		return err;
