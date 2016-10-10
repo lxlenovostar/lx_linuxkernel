@@ -35,6 +35,10 @@
 
 struct sk_buff;
 
+/*
+ The dst_entry structure defines an individual entry in the destination cache.
+ TODO: need understand P161
+ */
 struct dst_entry
 {
 	struct rcu_head		rcu_head;
