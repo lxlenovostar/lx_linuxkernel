@@ -291,7 +291,16 @@ int ip_output(struct sk_buff *skb)
 			    !(IPCB(skb)->flags & IPSKB_REROUTED));
 }
 
-/* 发送分组 */
+/** 
+ 发送分组 
+   
+ skb: Buffer descriptors for the packet to transmit. This data structure has all 
+      the parameters needed to fill in the IP header and to transmit the packet 
+      (e.g., the next hop gateway). Remember that ip_queue_xmit is used to handle 
+      locally generated packets; forwarded packets do not have an associated socket.
+
+ ipfragok: A flag used mainly by SCTP to say whether fragmentation is allowed.    
+*/
 int ip_queue_xmit(struct sk_buff *skb, int ipfragok)
 {
 	struct sock *sk = skb->sk;
@@ -308,6 +317,10 @@ int ip_queue_xmit(struct sk_buff *skb, int ipfragok)
 		goto packet_routed;
 
 	/* Make sure we can route this packet. */
+    /*
+     checks whether a route is already cached in the socket structure
+     and, if one is available, makes sure it is still valid (this is done by _ _sk_dst_check)
+     */
 	rt = (struct rtable *)__sk_dst_check(sk, 0);
 	if (rt == NULL) {
 		__be32 daddr;
@@ -333,11 +346,22 @@ int ip_queue_xmit(struct sk_buff *skb, int ipfragok)
 			 * itself out.
 			 */
 			security_sk_classify_flow(sk, &fl);
+            /*
+             If the socket does not already have a route for the packet cached, or if 
+             the one the IP layer has been using so far has been invalidated in the 
+             meantime, such as by an update from a routing protocol, ip_queue_xmit needs 
+             to look for a new route with ip_route_output_flow and store the result 
+             in the sk data structure.
+             */
 			if (ip_route_output_flow(&rt, &fl, sk, 0))
 				goto no_route;
 		}
 		sk_setup_caps(sk, &rt->u.dst);
 	}
+    /*
+     dst_clone is called to increment the reference count on the data structure assigned 
+     to skb->dst.
+     */
 	skb->dst = dst_clone(&rt->u.dst);
 
 packet_routed:
@@ -348,6 +372,10 @@ packet_routed:
 	skb_push(skb, sizeof(struct iphdr) + (opt ? opt->optlen : 0));
 	skb_reset_network_header(skb);
 	iph = ip_hdr(skb);
+    /*
+      sets the value of three fields (version, ihl and tos) in one shot, 
+      because they share a common 16 bits.
+     */
 	*((__be16 *)iph) = htons((4 << 12) | (5 << 8) | (inet->tos & 0xff));
 	iph->tot_len = htons(skb->len);
 	if (ip_dont_fragment(sk, &rt->u.dst) && !ipfragok)
@@ -360,17 +388,29 @@ packet_routed:
 	iph->daddr    = rt->rt_dst;
 	/* Transport layer set skb->h.foo itself. */
 
+    /*
+     update the header length field.    
+     */
 	if (opt && opt->optlen) {
 		iph->ihl += opt->optlen >> 2;
 		ip_options_build(skb, opt, inet->daddr, rt, 0);
 	}
 
+    /*
+     Then ip_select_ident_more sets the IP ID in the header based on whether 
+     the packet is likely to be fragmented. 
+     */
 	ip_select_ident_more(iph, &rt->u.dst, sk,
 			     (skb_shinfo(skb)->gso_segs ?: 1) - 1);
 
 	/* Add an IP checksum. */
 	ip_send_check(iph);
 
+    /*
+     skb->priority is used by Traffic Control to decide which one of the outgoing 
+     queues to enqueue the packet in; this in turn helps determine how soon it will 
+     be transmitted. 
+     */
 	skb->priority = sk->sk_priority;
 
 	return NF_HOOK(PF_INET, NF_IP_LOCAL_OUT, skb, NULL, rt->u.dst.dev,
