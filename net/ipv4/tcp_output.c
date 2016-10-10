@@ -999,6 +999,9 @@ unsigned int tcp_sync_mss(struct sock *sk, u32 pmtu)
 /**
  * TODO: need understand.
  */
+/**
+ * The function tcp_current_mss takes into account MTU discovery, the negotiated MSS, and the TCP_MAXSEG option.
+ */
 unsigned int tcp_current_mss(struct sock *sk, int large_allowed)
 {
 	struct tcp_sock *tp = tcp_sk(sk);
