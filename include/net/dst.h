@@ -37,20 +37,35 @@ struct sk_buff;
 
 /*
  The dst_entry structure defines an individual entry in the destination cache.
- TODO: need understand P161
  */
 struct dst_entry
 {
 	struct rcu_head		rcu_head;
 	struct dst_entry	*child;
+	/*
+     Dev points to either an input network interface device or an output network 
+     interface device depending on whether this destination is internal or external.
+     */
 	struct net_device       *dev;
 	short			error;
+	/*
+	 obsolete, indicates that this entry is no longer used. If the value is greater 
+     than one, it means that the entry has been returned to the slab cache.
+     */
 	short			obsolete;
+	/*
+     flags can contain the following four values.
+     */
 	int			flags;
 #define DST_HOST		1
 #define DST_NOXFRM		2
 #define DST_NOPOLICY		4
 #define DST_NOHASH		8
+	/*
+	 lastuse is set to the time in ticks that this entry was allocated. 
+	 It indicates the age of cache entry. Expires is the time when this cache entry 
+     ages out. It is used by the garbage collection facility to determine which entries are obsolete. 
+    */
 	unsigned long		expires;
 
 	unsigned short		header_len;	/* more space at head required */
@@ -63,10 +78,25 @@ struct dst_entry
 	unsigned long		rate_last;	/* rate limiting for ICMP */
 	unsigned long		rate_tokens;
 
+	/*
+	 neighbour, is a pointer to neighbor cache entry that is used for address resolution.
+     */
 	struct neighbour	*neighbour;
+	/*
+     hh points to the hardware header cache for this destination. If the destination 
+     cache entry is for a packet with an internal destination, hh will be NULL. For output 
+     packets, hh will be used to get the link layer header.
+     */
 	struct hh_cache		*hh;
+	/*
+     xfrm points to a transformation instance for the Security Policy Database (SPD).
+     */
 	struct xfrm_state	*xfrm;
 
+	/*
+     The next two fields, input and output, point to functions that are called when a packet is
+	 processed using a particular destination cache entry. 
+     */
 	int			(*input)(struct sk_buff*);
 	int			(*output)(struct sk_buff*);
 
@@ -74,6 +104,11 @@ struct dst_entry
 	__u32			tclassid;
 #endif
 
+	/*
+      ops, is the set of operation functions for the destination cache. 
+      This structure is initialized to a set of functions specific to a 
+	  network layer protocol. 
+     */
 	struct  dst_ops	        *ops;
 		
 	unsigned long		lastuse;
