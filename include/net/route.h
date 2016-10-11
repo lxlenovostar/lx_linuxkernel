@@ -48,6 +48,17 @@
 
 struct fib_nh;
 struct inet_peer;
+
+/*
+ The routing table, rtable, defined in file linux/include/net/route.h, is the fundamental data
+ structure that holds each route in the route cache. Like many data structures in the Linux
+ implementation of IPv4, it is essentially object oriented. This is how the routing cache can be
+ considered to be derived from the generic destination cache facility. For example, the socket
+ buffer structure, sk_buff, contains a pointer to the destination cache entry for an outgoing packet.
+ This entry, dst, can contain a pointer to the routing cache entry for the packet. Therefore, the
+ rtable structure is defined in such a way that the first few fields are identical to the fields of the
+ destination cache, dst_entry.
+ */
 struct rtable
 {
 	union
@@ -56,22 +67,45 @@ struct rtable
 	} u;
 
 	/* Cache lookup keys */
+	/* fl, contains the actual hash key. */
 	struct flowi		fl;
 
 	struct in_device	*idev;
-	
+
+	/*
+     The rt_flags field contains the routing table flags, which are also used by the application
+     interface to the routing table.
+     */	
 	unsigned		rt_flags;
+	/*
+	 rt_type is the type of this route. For example, it specifies whether the route is unicast, 
+	 multicast, or a local route. 
+     */
 	__u16			rt_type;
 
+	/*
+     rt_dst is the IP destination address, rt_src is the IP source address, 
+	 and rt_iif is the route input interface index.
+     */
 	__be32			rt_dst;	/* Path destination	*/
 	__be32			rt_src;	/* Path source		*/
 	int			rt_iif;
 
 	/* Info on neighbour */
+	/* The IP address of the gateway machine or neighbor is in the field rt_gateway. */
 	__be32			rt_gateway;
 
 	/* Miscellaneous cached information */
+	/*
+     rt_spec_dst, is the specific destination for the use of UDP socket users to set the source address.  
+     */
 	__be32			rt_spec_dst; /* RFC1122 specific destination */
+	/*
+     Internet peer structures are used for generating the 16-bit 
+	 identification in the IP header. This is called the long-living peer information. 
+     Linux calculates the ID by incrementing a number for
+     each transmitted packet for a specific host. 
+     */
 	struct inet_peer	*peer; /* long-living peer info */
 };
 
@@ -141,6 +175,9 @@ static inline char rt_tos2priority(u8 tos)
 	return ip_tos2prio[IPTOS_TOS(tos)>>1];
 }
 
+/*
+ main function for resolving routes for output packets.
+ */
 static inline int ip_route_connect(struct rtable **rp, __be32 dst,
 				   __be32 src, u32 tos, int oif, u8 protocol,
 				   __be16 sport, __be16 dport, struct sock *sk,
@@ -156,6 +193,10 @@ static inline int ip_route_connect(struct rtable **rp, __be32 dst,
 					 .dport = dport } } };
 
 	int err;
+	
+	/*
+     we try to update both the source and destination addresses if one is missing.
+     */
 	if (!dst || !src) {
 		err = __ip_route_output_key(rp, &fl);
 		if (err)
@@ -166,6 +207,10 @@ static inline int ip_route_connect(struct rtable **rp, __be32 dst,
 		*rp = NULL;
 	}
 	security_sk_classify_flow(sk, &fl);
+
+	/*
+     If both the source and destination addresses are defined, we pass in a pointer to the sock in sk.
+     */
 	return ip_route_output_flow(rp, &fl, sk, flags);
 }
 

@@ -240,7 +240,6 @@ EXPORT_SYMBOL(build_ehash_secret);
 /*
  *	Create an inet socket.
  */
-
 static int inet_create(struct net *net, struct socket *sock, int protocol)
 {
 	struct sock *sk;
