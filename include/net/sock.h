@@ -836,6 +836,14 @@ static inline struct kiocb *siocb_to_kiocb(struct sock_iocb *si)
 	return si->kiocb;
 }
 
+/*
+ Inode and socket are linked by allocating one directly after the other in 
+ memory by means of the following auxiliary structure. The kernel provides 
+ two macros that perform the necessary pointer arithmetic to move from an inode
+ to the associated socket instance (SOCKET_I) and vice versa (SOCK_INODE). To 
+ simplify the situation, whenever a socket is attached to a file, sock_attach_fd 
+ sets the private_data element of struct file so that it points to the socket instance.  
+ */
 struct socket_alloc {
 	struct socket socket;
 	struct inode vfs_inode;

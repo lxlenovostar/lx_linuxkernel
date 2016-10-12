@@ -135,23 +135,30 @@ struct socket {
 	 following values (SS stands for socket state)
      */
 	socket_state		state;
+	/*
+     flags hold the socket wait buffer state containing values such as SOCK_ASYNC_NOSPACE.
+     */
 	unsigned long		flags;
 	/*
-     holds pointers to protocol-specific functions to handle the socket
+     ops holds pointers to protocol-specific functions to handle the socket.
      */
 	const struct proto_ops	*ops;
+	/*
+     fasync_list, points to the wake-up list for asynchronous file calls. For more
+	 information, see fsync(2). 
+     */
 	struct fasync_struct	*fasync_list;
 	/*
      file is a pointer to the file instance of a pseudo-file for communication 
      with the socket (as discussed earlier, user applications use normal file descriptors 
-     to perform network operations).
+     to perform network operations). We need to keep a pointer here to facilitate garbage collection.
      */
 	struct file		*file;
+	/* sk points to the sock structure for this socket. */
 	struct sock		*sk;
+	/* wait is the socket wait queue. */
 	wait_queue_head_t	wait;
-	/*
-     the numeric identifier of the protocol type. 
-     */
+	/* type is the socket type, and generally is SOCK_STREAM, SOCK_DGRAM, or SOCK_RAW. */
 	short			type;
 };
 
@@ -163,8 +170,14 @@ struct msghdr;
 struct module;
 
 struct proto_ops {
+	/* family is the address family. It is set to AF_INET for IPv4. */
 	int		family;
+	/* owner is the module that owns this socket.*/
 	struct module	*owner;
+	/* 
+     Each of the following fields corresponds to a socket call. They are 
+	 all pointers to the function implementing the protocol-specific operation. 
+     */
 	int		(*release)   (struct socket *sock);
 	int		(*bind)	     (struct socket *sock,
 				      struct sockaddr *myaddr,
