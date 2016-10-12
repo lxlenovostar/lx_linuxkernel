@@ -112,12 +112,27 @@ struct proto;
  *	for struct sock and struct inet_timewait_sock.
  */
 struct sock_common {
+	/*
+     skc_family contains the network address family, such as AF_INET for IPv4.
+	 skc_state is the connection state, and skc_reuse holds the value of the 
+	 SO_REUSEADDR socket option.
+     */
 	unsigned short		skc_family;
 	volatile unsigned char	skc_state;
 	unsigned char		skc_reuse;
+	/*
+     skc_bound_dev_if holds the index for the bound network interface device.
+     */
 	int			skc_bound_dev_if;
+	/*
+     The sock structures of the system are organized in a protocol-specific 
+     hash table. skc_node is the hash linkage element, while skc_hash denotes the hash value.
+     */
 	struct hlist_node	skc_node;
 	struct hlist_node	skc_bind_node;
+	/*
+     skc_refcnt is the reference count for this socket.
+     */
 	atomic_t		skc_refcnt;
 	unsigned int		skc_hash;
 	struct proto		*skc_prot;
@@ -183,12 +198,25 @@ struct sock_common {
   *	@sk_backlog_rcv: callback to process the backlog
   *	@sk_destruct: called at sock freeing time, i.e. when all refcnt == 0
  */
+ /*
+   sock keep state information about open connections. It is accessed throughout the TCP/IP
+   protocol but mostly within the TCP protocol. 
+  */
 struct sock {
 	/*
 	 * Now struct inet_timewait_sock also uses sock_common, so please just
 	 * don't add nothing before this first member (__sk_common) --acme
 	 */
+	/*
+     The first thing in the sock structure must be sock_common, described previously. Sock_common
+     is first because tcp_w_bucket structure and perhaps other structures also have sock_common as
+     the first part. This is to allow the same list processing and queuing functions to be used on both
+     kinds of structures.
+     */
 	struct sock_common	__sk_common;
+	/*
+     Here we have some defines to make it easier to find the fields in the common part.
+     */
 #define sk_family		__sk_common.skc_family
 #define sk_state		__sk_common.skc_state
 #define sk_reuse		__sk_common.skc_reuse
@@ -199,11 +227,31 @@ struct sock {
 #define sk_hash			__sk_common.skc_hash
 #define sk_prot			__sk_common.skc_prot
 #define sk_net			__sk_common.skc_net
+	/*
+	 sk_shutdown is used with the RCV_SHUTDOWN and SEND_SHUTDOWN socket options.
+     when the SEND_SHUTDOWN option is set, in TCP, an RST will be sent when closing the socket.
+     */
+	/*
+     sk_userlocks holds the SO_SNDBUF and SO_RCVBUF socket option settings.
+     */
+	/* 
+     sk_no_check contains the value of the SO_NO_CHECK socket option
+     and indicates whether to disable checksums.
+     */
 	unsigned char		sk_shutdown : 2,
 				sk_no_check : 2,
 				sk_userlocks : 4;
+	/*
+     sk_protocol, holds the protocol number for this socket within the AF_INET
+	 family. It is the same as the 1-byte protocol field in the IP header.
+     */
 	unsigned char		sk_protocol;
+	/* sk_type, holds the socket type SOCK_STREAM or SOCK_DGRAM. */
 	unsigned short		sk_type;
+	/*
+     sk_rcvbuf is the size of the receive buffer in bytes and is set from the SO_RCVBUF socket option.
+     sk_lock is the individual socket lock used for socket synchronization. 
+     */
 	int			sk_rcvbuf;
 	socket_lock_t		sk_lock;
 	/*
@@ -215,40 +263,77 @@ struct sock {
 		struct sk_buff *head;
 		struct sk_buff *tail;
 	} sk_backlog;
+	/*
+     sk_sleep is the sock wait queue, and sk_dst_cache is the pointer to the destination cache entry.
+     */
 	wait_queue_head_t	*sk_sleep;
 	struct dst_entry	*sk_dst_cache;
+	/*
+     This field is used with the Security Policy Database (SPD).
+     */
 	struct xfrm_policy	*sk_policy[2];
 	rwlock_t		sk_dst_lock;
+	/* sk_rmem_alloc is the number of committed bytes in the receive packet queue. */
 	atomic_t		sk_rmem_alloc;
+	/* sk_wmem_alloc is the transmit queue committed length. */
 	atomic_t		sk_wmem_alloc;
+	/* sk_omem_alloc is the number of optional committed bytes. It is used by socket filters. */
 	atomic_t		sk_omem_alloc;
+	/* sk_sndbuf is the size of the send buffer and is set with the SO_SNDBUF socket option. */
 	int			sk_sndbuf;
+	/*
+     Data are sent and received by placing them on wait queues 
+     (sk_receive_queue and sk_write_queue) that contain socket buffers.
+     */
 	struct sk_buff_head	sk_receive_queue;
 	struct sk_buff_head	sk_write_queue;
 	struct sk_buff_head	sk_async_wait_queue;
+	/* sk_wmem_queued is the persistent write queue size. */
 	int			sk_wmem_queued;
+	/* sk_forward_alloc is the number of bytes in pre-allocated pages. */
 	int			sk_forward_alloc;
 	gfp_t			sk_allocation;
+	/* sk_route_caps is the route capabilities, NETIF_F_TSO.*/
 	int			sk_route_caps;
 	int			sk_gso_type;
 	int			sk_rcvlowat;
+	/* sk_flags contains the values of the socket options SO_BROADCAST, SO_KEEPALIVE, and
+SO_OOBINLINE.*/
 	unsigned long 		sk_flags;
+	/* The value of sk_lingertime is set to TRUE if the SO_LINGER socket option is set. */
 	unsigned long	        sk_lingertime;
 	struct sk_buff_head	sk_error_queue;
 	struct proto		*sk_prot_creator;
+	/* This lock is for the six callback functions at the bottom of the sock structure. */
 	rwlock_t		sk_callback_lock;
 	int			sk_err,
 				sk_err_soft;
+	/*
+     The next two fields are for the current listen backlog and the maximum 
+     backlog set in the listen call. 
+     */
 	unsigned short		sk_ack_backlog;
 	unsigned short		sk_max_ack_backlog;
+	/* sk_priority holds the value of the SO_PRIORITY socket option. */	
 	__u32			sk_priority;
+	/* 
+     The sk_peercred field is not used for TCP/IP. It is for passing 
+     file descriptors using Berkeley style credentials. 
+     */
 	struct ucred		sk_peercred;
+	/*
+     The following two fields hold the value of the SO_RCVTIMEO, and the SO_SNDTIMEO socket options.
+     */
 	long			sk_rcvtimeo;
 	long			sk_sndtimeo;
 	struct sk_filter      	*sk_filter;
+	/* sk_protinfo points to private areas for various protocols. */
 	void			*sk_protinfo;
+	/* sk_timer is the sock cleanup timer. */
 	struct timer_list	sk_timer;
+	/* sk_stamp is the timestamp of the most recent received packet. */
 	ktime_t			sk_stamp;
+	/* sk_socket points to the socket structure for this socket. */
 	struct socket		*sk_socket;
 	void			*sk_user_data;
 	struct page		*sk_sndmsg_page;
@@ -256,12 +341,28 @@ struct sock {
 	__u32			sk_sndmsg_off;
 	int			sk_write_pending;
 	void			*sk_security;
+	/*
+     The following five fields point to callback functions for this socket. 
+	 The first field, sk_state_change, is called when the state of this sock is changed, 
+     and the next field, sk_data_ready, indicates that there is data available to be processed. 
+     Sk_write_space is called when there is buffer space available for sending. Sk_error_report 
+     is called when there are errors to report and is used with MSG_ERRQUEUE. Sk_backlog_rcv is 
+     called to process the socket backlog.
+     */
 	void			(*sk_state_change)(struct sock *sk);
+	/*
+     The function it contains is invoked when data arrive for handling 
+     by the user process. Typically, the value of the pointer is sock_def_readable.
+     */
 	void			(*sk_data_ready)(struct sock *sk, int bytes);
 	void			(*sk_write_space)(struct sock *sk);
 	void			(*sk_error_report)(struct sock *sk);
   	int			(*sk_backlog_rcv)(struct sock *sk,
 						  struct sk_buff *skb);  
+	/*
+     the last field is the destructor function for this sock instance. It is called 
+     when all the references are gone and the refcnt becomes zero. 
+     */
 	void                    (*sk_destruct)(struct sock *sk);
 };
 
