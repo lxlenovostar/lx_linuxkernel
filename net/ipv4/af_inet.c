@@ -240,6 +240,16 @@ EXPORT_SYMBOL(build_ehash_secret);
 /*
  *	Create an inet socket.
  */
+/*
+ inet_create is defined as static because it is not called directly. Instead, 
+ it is called through the create field in the net_proto_family structure for the 
+ AF_INET protocol family. inet_create is called from sys_socket when family is 
+ set to AF_INET. In inet_create, we create a new sock structure called sk and 
+ initialize a few more fields. The new sock structure is allocated from the
+ slab cache, inet_sk_slab. Linux has multiple inet_sk_slabs, one for each protocol. 
+ Linux slab caches are more efficient if they are specific for the purpose, so 
+ most fields can be pre-initialized to common values. 
+ */
 static int inet_create(struct net *net, struct socket *sock, int protocol)
 {
 	struct sock *sk;

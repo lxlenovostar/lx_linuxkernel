@@ -242,11 +242,27 @@ static struct inode *sock_alloc_inode(struct super_block *sb)
 		return NULL;
 	init_waitqueue_head(&ei->socket.wait);
 
+	/*  
+     fasync_list is for supporting the fsync system call for synchronizing 
+     the in-memory portions of a file with permanent storage. 
+     */
 	ei->socket.fasync_list = NULL;
+	/*
+     state related to whether an open socket represents a connection to a peer or not. 
+	 SS_UNCONNECTED : Unconnected to another socket.
+     */
 	ei->socket.state = SS_UNCONNECTED;
 	ei->socket.flags = 0;
 	ei->socket.ops = NULL;
+	/* 
+     sk will be set later to point to the internal sock structure by the 
+     protocol-specific create function. 
+     */
 	ei->socket.sk = NULL;
+	/*
+     file will be set to a file pointer allocated when sock_map_fd is called. The file
+     pointer is used to maintain the state of the pseudo file associated with the open socket.
+     */
 	ei->socket.file = NULL;
 
 	return &ei->vfs_inode;
