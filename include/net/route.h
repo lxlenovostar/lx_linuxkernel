@@ -85,10 +85,12 @@ struct rtable
 
 	/*
      rt_dst is the IP destination address, rt_src is the IP source address, 
-	 and rt_iif is the route input interface index.
      */
 	__be32			rt_dst;	/* Path destination	*/
 	__be32			rt_src;	/* Path source		*/
+	/*
+	 rt_iif is the route input interface index.
+     */
 	int			rt_iif;
 
 	/* Info on neighbour */

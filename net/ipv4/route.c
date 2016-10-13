@@ -2118,7 +2118,6 @@ static inline int ip_mkroute_output(struct rtable **rp,
 /*
  * Major route resolver routine.
  */
-
 static int ip_route_output_slow(struct rtable **rp, const struct flowi *oldflp)
 {
 	u32 tos	= RT_FL_TOS(oldflp);

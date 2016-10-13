@@ -145,7 +145,7 @@ struct skb_shared_info {
 	unsigned short	nr_frags;   /* reflects the number of Scatter/Gather I/O buffers */
 	unsigned short	gso_size;
 	/* Warning: this field is not always filled in (UFO)! */
-	unsigned short	gso_segs;
+	unsigned short	gso_segs;	/* TODO: need understand */
 	unsigned short  gso_type;
 	__be32          ip6_frag_id;
 	struct sk_buff	*frag_list;
