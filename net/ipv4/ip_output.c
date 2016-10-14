@@ -183,10 +183,19 @@ static inline int ip_finish_output2(struct sk_buff *skb)
 		skb = skb2;
 	}
 
+	/*
+	  这里和ARP(地址解析协议)相关。
+      If we already have the destination hardware address resolved, the packet 
+      is passed to the packet scheduler for transmission. We make a decision based 
+      on hardware caches for the route. If the route's hardware cache(skb->dst->hh) 
+	  is initialized, the hardware address is resolved. Otherwise we may need to 
+      search in the ARP table for the destination IP entry. Neighbor framework 
+      manages and implements ARP/RARP on Linux.
+     */
 	if (dst->hh)
 		return neigh_hh_output(dst->hh, skb);
 	else if (dst->neighbour)
-		return dst->neighbour->output(skb); /*调用路由层的dev_queue_xmit*/
+		return dst->neighbour->output(skb); /* neigh_resolve_output(resolve the hardware address), dev_queue_xmit*/
 
 	if (net_ratelimit())
 		printk(KERN_DEBUG "ip_finish_output2: No header cache and no neighbour!\n");
