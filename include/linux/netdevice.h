@@ -116,7 +116,7 @@ struct net_device_subqueue
 {
 	/* Give a control state for each queue.  This struct may contain
 	 * per-queue locks in the future.
- 	 */
+	 */
 	unsigned long   state;
 };
 
@@ -445,9 +445,7 @@ static inline void napi_synchronize(const struct napi_struct *n)
  *	moves out.
  */
 
-struct net_device
-{
-
+struct net_device {
 	/*
 	 * This is the first field of the "visible" part of this structure
 	 * (i.e. as seen by users in the "Space.c" file).  It is the name
