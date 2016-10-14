@@ -1543,6 +1543,7 @@ int dev_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
 				goto gso;
 		}
 
+		/* Here is where we call the network interface driver’s transmit routine. */
 		return dev->hard_start_xmit(skb, dev);
 	}
 
@@ -1608,6 +1609,10 @@ int dev_queue_xmit(struct sk_buff *skb)
 	if (netif_needs_gso(dev, skb))
 		goto gso;
 
+	/*
+     we check the features flag, NETIF_F_FRAGLIST, to see if the skb is 
+     split into a list of fragments.
+     */
 	if (skb_shinfo(skb)->frag_list &&
 	    !(dev->features & NETIF_F_FRAGLIST) &&
 	    __skb_linearize(skb))
@@ -1634,6 +1639,7 @@ int dev_queue_xmit(struct sk_buff *skb)
 		      skb->protocol == htons(ETH_P_IP)) &&
 		    !((dev->features & NETIF_F_IPV6_CSUM) &&
 		      skb->protocol == htons(ETH_P_IPV6)))
+			/* we  call skb_checksum_help to calculate the checksum in software. */
 			if (skb_checksum_help(skb))
 				goto out_kfree_skb;
 	}
@@ -1664,6 +1670,14 @@ gso:
 #endif
 	if (q->enqueue) {
 		/* Grab device queue */
+		/*
+         At this point, dev_queue_xmit may re-queue the packet or it 
+         may send it directly to the driver depending on the queue discipline that 
+         is in effect for this device driver, the state of the queue,
+         and the traffic class scheduler in use. We get the device queue discipline 
+         from the qdisc field of the net_device structure. If we have a queue, we put 
+         the packet on the queue.
+         */
 		spin_lock(&dev->queue_lock);
 		q = dev->qdisc;
 		if (q->enqueue) {

@@ -276,7 +276,6 @@ int ip_mc_output(struct sk_buff *skb)
 			    !(IPCB(skb)->flags & IPSKB_REROUTED));
 }
 
-/* 转移到网络访问层 */
 int ip_output(struct sk_buff *skb)
 {
 	struct net_device *dev = skb->dst->dev;
