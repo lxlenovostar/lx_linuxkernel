@@ -276,6 +276,13 @@ struct sk_buff {
 				data_len;
 	__u16			mac_len,
 				hdr_len;
+	/*
+     在接收包的时候，ip_summed 表示 csum 的状态，比如：CHECKSUM_NONE 表示此 csum 不合法。
+     CHECKSUM_HW 表示硬件已经计算 checksum, 我们只需要从 csum 拷贝。
+     在发送包的时候，CHECKSUM_NONE 表示协议已经处理了 checksum。CHECKSUM_HW 表示需要硬件计算checksum。
+	 csum holds the IP header checksum.
+     The field ip_summed indicates whether the output device can calculate IP checksums in hardware
+     */
 	union {
 		__wsum		csum;
 		struct {
