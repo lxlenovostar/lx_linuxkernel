@@ -2118,6 +2118,10 @@ static inline int ip_mkroute_output(struct rtable **rp,
 /*
  * Major route resolver routine.
  */
+/*
+ If the fast path routing function can’t match the new route in the route cache, 
+ it calls the function ip_route_output_slow to search the FIB.
+ */
 static int ip_route_output_slow(struct rtable **rp, const struct flowi *oldflp)
 {
 	u32 tos	= RT_FL_TOS(oldflp);
@@ -2310,6 +2314,13 @@ make_route:
 out:	return err;
 }
 
+/*
+ _ip_route_output_key is the function that does the fast path output routing. First, it tries to find a
+ matching route in the route cache. If it can’t find the route in the cache, it tries to find the route
+ by searching the FIB. This function returns a zero if the route is found, and a nonzero value if it
+ is not. If the search was successful, a pointer to the route cache entry, rtable, in placed in the
+ parameter, rp.
+ */
 int __ip_route_output_key(struct rtable **rp, const struct flowi *flp)
 {
 	unsigned hash;
@@ -2405,10 +2416,17 @@ static int ipv4_dst_blackhole(struct rtable **rp, struct flowi *flp, struct sock
 	return (rt ? 0 : -ENOMEM);
 }
 
+/*
+ The function ip_route_output_flow can automatically transform the route if the protocol value in
+ the flowi structure is set to NAT or some other nonzero number.
+ */
 int ip_route_output_flow(struct rtable **rp, struct flowi *flp, struct sock *sk, int flags)
 {
 	int err;
 
+	/*
+	 We call the fast route resolving function here.
+     */
 	if ((err = __ip_route_output_key(rp, flp)) != 0)
 		return err;
 
@@ -2417,6 +2435,9 @@ int ip_route_output_flow(struct rtable **rp, struct flowi *flp, struct sock *sk,
 			flp->fl4_src = (*rp)->rt_src;
 		if (!flp->fl4_dst)
 			flp->fl4_dst = (*rp)->rt_dst;
+		/*
+         If we found a route, and the proto info in the flowi was not zero, we try to transform the route.
+         */
 		err = __xfrm_lookup((struct dst_entry **)rp, flp, sk, flags);
 		if (err == -EREMOTE)
 			err = ipv4_dst_blackhole(rp, flp, sk);

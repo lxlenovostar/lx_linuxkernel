@@ -212,6 +212,8 @@ static inline int ip_route_connect(struct rtable **rp, __be32 dst,
 
 	/*
      If both the source and destination addresses are defined, we pass in a pointer to the sock in sk.
+	 The function ip_route_output_flow can automatically transform the route if the protocol value in
+     the flowi structure is set to NAT or some other nonzero number.
      */
 	return ip_route_output_flow(rp, &fl, sk, flags);
 }
