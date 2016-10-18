@@ -346,6 +346,9 @@ static void neigh_hash_grow(struct neigh_table *tbl, unsigned long new_entries)
 	neigh_hash_free(old_hash, old_entries);
 }
 
+/*
+ look up the advertised neighbor in the neighbor cache. 
+ */
 struct neighbour *neigh_lookup(struct neigh_table *tbl, const void *pkey,
 			       struct net_device *dev)
 {

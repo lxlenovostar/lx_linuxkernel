@@ -262,6 +262,9 @@ static inline struct neigh_parms *neigh_parms_clone(struct neigh_parms *parms)
  *	Neighbour references
  */
 
+/*
+ releases a neighbor cache entry.
+ */
 static inline void neigh_release(struct neighbour *neigh)
 {
 	if (atomic_dec_and_test(&neigh->refcnt))
@@ -293,6 +296,9 @@ static inline int neigh_is_valid(struct neighbour *neigh)
 	return neigh->nud_state&NUD_VALID;
 }
 
+/*
+ The neigh_event_send function is for sending an event based on the entry’s NUD state.
+ */
 static inline int neigh_event_send(struct neighbour *neigh, struct sk_buff *skb)
 {
 	neigh->used = jiffies;
