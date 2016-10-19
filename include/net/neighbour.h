@@ -87,6 +87,12 @@ struct neigh_statistics
 		preempt_enable();					\
 	} while (0)
 
+/*
+ sttores information about a neighbor, such as the L2 and L3 addresses, the NUD state, the device
+ through which the neighbor can be reached, etc. Note that a neighbour enTRy is associated not
+ with a host, but with an L3 address. There can be more than one L3 address for a host. For example,
+ routers, among other systems, have multiple interfaces and therefore multiple L3 addresses.
+ */
 struct neighbour
 {
 	struct neighbour	*next;
