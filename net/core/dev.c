@@ -1536,6 +1536,7 @@ int dev_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
 		if (!list_empty(&ptype_all))
 			dev_queue_xmit_nit(skb, dev);
 
+		/* dev_gso_segment 执行分片 */
 		if (netif_needs_gso(dev, skb)) {
 			if (unlikely(dev_gso_segment(skb)))
 				goto out_kfree_skb;

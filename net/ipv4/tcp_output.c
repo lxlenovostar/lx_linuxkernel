@@ -997,7 +997,21 @@ unsigned int tcp_sync_mss(struct sock *sk, u32 pmtu)
  * is not a big flaw.
  */
 /**
- * TODO: need understand.
+ * TODO: need understand. 如果影响mss_now. 以及MTU, MSS, gso_max_size 之间的关系。
+
+ * TSO 是使得网络协议栈能够将大块 buffer 推送至网卡，然后网卡执行分片工作，这样减轻了 CPU 
+ * 的负荷，但 TSO 需要硬件来实现分片功能；而性能上的提高，主要是因为延缓分片而减轻了 CPU 
+ * 的负载，因此，可以考虑将 TSO 技术一般化，因为其本质实际是延缓分片，这种技术，在 Linux 
+ * 中被叫做 GSO(Generic Segmentation Offload)，它比 TSO 更通用，原因在于它不需要硬件的支持 
+ * 分片就可使用，对于支持 TSO 功能的硬件，则先经过 GSO 功能，然后使用网卡的硬件分片能力执行 
+ * 分片；而对于不支持 TSO 功能的网卡，将分片的执行，放在了将数据推送的网卡的前一刻，也就是在 
+ * 调用驱动的 xmit 函数前。
+ * 我们再来看看内核中数据包的分片都有可能在哪些时刻：
+ * 1.在传输协议中，当构造 skb 用于排队的时候
+ * 2.在传输协议中，但是使用了 NETIF_F_GSO 功能，当即将传递个网卡驱动的时候
+ * 3.在驱动程序里，此时驱动支持 TSO 功能 ( 设置了 NETIF_F_TSO 标志 )
+ * 对于支持 GSO 的情况，主要使用了情况 2 或者是情况 2.、3，其中情况二是在硬件不支持 TSO 的
+ * 情况下，而情况 2、3 则是在硬件支持 TSO 的情况下。
  */
 /**
  * The function tcp_current_mss takes into account MTU discovery, the negotiated MSS, and the TCP_MAXSEG option.
@@ -1010,6 +1024,7 @@ unsigned int tcp_current_mss(struct sock *sk, int large_allowed)
 	u16 xmit_size_goal;
 	int doing_tso = 0;
 
+	/* Cached effective mss, not including SACKS */
 	mss_now = tp->mss_cache;    
 
 	if (large_allowed && sk_can_gso(sk) && !tp->urg_mode)
@@ -1032,6 +1047,7 @@ unsigned int tcp_current_mss(struct sock *sk, int large_allowed)
 
 	xmit_size_goal = mss_now;
 
+	/* 受TSO影响 */
 	if (doing_tso) {
 		xmit_size_goal = (65535 -
 				  inet_csk(sk)->icsk_af_ops->net_header_len -
