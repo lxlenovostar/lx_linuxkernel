@@ -103,7 +103,7 @@ struct cgroup {
 
 	/*
 	 sibling,children 和 parent 三个嵌入的 list_head 负责将统一层级的 
-	 cgroup 连接成一棵 cgroup 树。
+	 cgroup 连接成一棵 cgroup 树(hierarchy 层级树)。
      */
 	/*
 	 * We link our 'sibling' struct into our parent's 'children'.
@@ -126,6 +126,7 @@ struct cgroup {
      root 指向了一个 cgroupfs_root 的结构，就是 cgroup 所在的层级对应的结构体。
      */
 	struct cgroupfs_root *root;
+
 	/*
      top_cgroup 指向了所在层级的根 cgroup，也就是创建层级时自动创建的那个 cgroup。
      */
@@ -188,7 +189,7 @@ struct css_set {
 	/*
      subsys 是一个指针数组，存储一组指向 cgroup_subsys_state 的指针。
 	 一个 cgroup_subsys_state 就是进程与一个特定子系统相关的信息。通过这个指针数组，
-	 进程就可以获得相应的 cgroups 控制信息了。
+	 进程就可以获得相应的 cgroups 控制信息。
      */
 	/*
 	 * Set of subsystem states, one for each subsystem. This array

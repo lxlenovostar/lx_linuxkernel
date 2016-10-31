@@ -1151,12 +1151,10 @@ struct task_struct {
 	int cpuset_mem_spread_rotor;
 #endif
 #ifdef CONFIG_CGROUPS
-	/*
-     css_set 存储了与进程有关的 cgroups 信息。cg_list 是一个嵌入的 list_head 结构，
-	 用于将连到同一个 css_set 的进程组织成一个链表。
-     */
+	/* css_set 存储了与进程有关的 cgroups 信息。*/
 	/* Control Group info protected by css_set_lock */
 	struct css_set *cgroups;
+	/* cg_list 是一个嵌入的list_head结构，用于将连到同一个css_set的进程组织成一个链表。*/
 	/* cg_list protected by css_set_lock and tsk->alloc_lock */
 	struct list_head cg_list;
 #endif
