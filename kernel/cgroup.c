@@ -840,6 +840,7 @@ static int cgroup_remount(struct super_block *sb, int *flags, char *data)
 	return ret;
 }
 
+/* cgroup 超级块的定义 */
 static struct super_operations cgroup_ops = {
 	.statfs = simple_statfs,
 	.drop_inode = generic_delete_inode,
@@ -1092,6 +1093,10 @@ static void cgroup_kill_sb(struct super_block *sb) {
 	kill_litter_super(sb);
 }
 
+/*
+ 定义了一个文件系统必须实现了的两个操作 get_sb,kill_sb，即获得超级块和释放超级块。
+ 这两个操作会在使用 mount 系统调用挂载 cgroup 文件系统时使用。
+ */
 static struct file_system_type cgroup_fs_type = {
 	.name = "cgroup",
 	.get_sb = cgroup_get_sb,
@@ -1522,6 +1527,7 @@ static int cgroup_rename(struct inode *old_dir, struct dentry *old_dentry,
 	return simple_rename(old_dir, old_dentry, new_dir, new_dentry);
 }
 
+/* Cgroup 文件操作定义. */
 static struct file_operations cgroup_file_operations = {
 	.read = cgroup_file_read,
 	.write = cgroup_file_write,
@@ -1530,6 +1536,12 @@ static struct file_operations cgroup_file_operations = {
 	.release = cgroup_file_release,
 };
 
+/* 
+  Cgroup 索引块定义.
+  在 cgroup 文件系统中，使用 mkdir 创建 cgroup 或者用 rmdir 删除 cgroup 时，就会调用
+  相应的函数指针指向的函数。比如：使用 mkdir 创建 cgroup 时，会调用 cgroup_mkdir，
+  然后在 cgroup_mkdir 中再调用具体实现的 cgroup_create 函数。
+ */
 static struct inode_operations cgroup_dir_inode_operations = {
 	.lookup = simple_lookup,
 	.mkdir = cgroup_mkdir,
