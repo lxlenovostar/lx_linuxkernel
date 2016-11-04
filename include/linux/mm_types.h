@@ -332,8 +332,17 @@ struct mm_struct {
 				unsigned long addr, unsigned long len,
 				unsigned long pgoff, unsigned long flags);
 #endif
+	/*
+     mmap_base 表示虚拟地址空间中用于内存映射到起始地址，可调用 get_unmapped_area 在 
+     mmap区域中为新映射找到适当的位置。
+     */
 	unsigned long mmap_base;		/* base of mmap area */
 	unsigned long mmap_legacy_base;         /* base of mmap area in bottom-up allocations */
+	/*
+     task_size, 储存了对应进程的地址空间长度。对本机应用程序来说，该值通常是TASK_SIZE。但64位
+     体系结构与前辈处理器通常是二进制兼容的。如果在64位计算机上执行32位二进制代码，则task_size
+     描述了该二进制代码实际可见的地址空间长度。
+     */
 	unsigned long task_size;		/* size of task vm space */
 	unsigned long highest_vm_end;		/* highest vma end address */
 	pgd_t * pgd;
@@ -361,8 +370,21 @@ struct mm_struct {
 	unsigned long stack_vm;		/* VM_GROWSUP/DOWN */
 	unsigned long def_flags;
 	unsigned long nr_ptes;		/* Page table pages */
+	/*
+     可执行代码占用的虚拟地址空间区域，其开始和结束分别通过start_code和end_code
+     标记。start_data和end_data标记了包含已初始化的区域。在ELF二进制文件映射到
+     地址空间之后，这些区域的长度不再改变。 
+     */
 	unsigned long start_code, end_code, start_data, end_data;
+	/*
+     堆的起始地址保存在start_brk, brk表示堆区域当前的结束地址。尽管堆的起始地址在
+     进程生命周期中是不变的，但堆的长度会发生变化，因而brk的值也会变。
+     */
 	unsigned long start_brk, brk, start_stack;
+	/*
+     参数列表和环境变量的位置分别由 arg_start 和 arg_end, env_start 和 env_end描述。
+     两个区域都位于栈中最高的区域。
+     */
 	unsigned long arg_start, arg_end, env_start, env_end;
 
 	unsigned long saved_auxv[AT_VECTOR_SIZE]; /* for /proc/PID/auxv */
