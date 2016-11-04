@@ -173,6 +173,7 @@ asmlinkage void do_page_fault(struct pt_regs *regs, unsigned long error_code)
 	/* 说明映射已经建立。 */
 	if (vma->vm_start <= address)
 		goto good_area;
+
 	/*
      除了上面的两种情况，剩下的就是给定地址正落在两个区间当中的空洞里，也就是该地址所在页面
      映射尚未建立或者已经撤销。在用户虚存空间中，可能有两种不同的空洞。第一种空洞只能有一个，
@@ -257,6 +258,14 @@ bad_area:
 	up(&mm->mmap_sem);
 
 bad_area_nosemaphore:
+	/*
+     对当前进程的task_struct结构内的一些成分进行一些设置以后，就向该进程发出一个
+     强制的"信号"(或称"软中断")SIGSEGV。每次从中断/异常返回之前，都要检查当前进程
+     是否有悬而未决的信号需要处理，然后，内核根据这些待处理信号的性质以及进程本身
+     的选择决定怎么办。对有些软中断的处理是"自愿"的，有些则是强制的。而对于SIGSEGV 
+     的反应，那是强制的，其后果是在该进程的显示屏上显示"Segment Fault"提示，然后
+     使进程撤销。  
+     */
 	/* User mode accesses just cause a SIGSEGV */
 	if (error_code & 4) {
 		tsk->thread.cr2 = address;
