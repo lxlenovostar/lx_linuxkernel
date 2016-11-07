@@ -242,6 +242,7 @@ static void mem_cgroup_oom_notify(struct mem_cgroup *memcg);
  */
 struct mem_cgroup {
 	struct cgroup_subsys_state css;
+
 	/*
 	 * the counter to account for memory usage
 	 */
