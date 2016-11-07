@@ -500,7 +500,7 @@ struct file {
 	struct list_head	f_list;
 	struct dentry		*f_dentry;
 	struct vfsmount         *f_vfsmnt;
-	struct file_operations	*f_op;
+	struct file_operations	*f_op; //f_op设置成指向某个具体的file_operations结构，这样就指定了这个文件所属的文件系统。
 	atomic_t		f_count;
 	unsigned int 		f_flags;
 	mode_t			f_mode;
