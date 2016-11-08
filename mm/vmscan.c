@@ -2750,6 +2750,9 @@ unsigned long try_to_free_mem_cgroup_pages(struct mem_cgroup *memcg,
 					    sc.may_writepage,
 					    sc.gfp_mask);
 
+	/*
+     如果发现可供分配的内存页面短缺，那就要设法释放和换出若干页面，通过do_try_to_free_pages()完成。
+     */
 	nr_reclaimed = do_try_to_free_pages(zonelist, &sc, &shrink);
 
 	trace_mm_vmscan_memcg_reclaim_end(nr_reclaimed);
