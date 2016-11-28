@@ -1,17 +1,28 @@
-#ifndef _ASMi386_SIGNAL_H
-#define _ASMi386_SIGNAL_H
+#ifndef _ASM_X86_SIGNAL_H
+#define _ASM_X86_SIGNAL_H
 
+#ifndef __ASSEMBLY__
 #include <linux/types.h>
+#include <linux/time.h>
+#include <linux/compiler.h>
 
 /* Avoid too many header ordering problems.  */
 struct siginfo;
 
 #ifdef __KERNEL__
+#include <linux/linkage.h>
+
 /* Most things should be clean enough to redefine this at will, if care
    is taken to make libc match.  */
 
 #define _NSIG		64
-#define _NSIG_BPW	32
+
+#ifdef __i386__
+# define _NSIG_BPW	32
+#else
+# define _NSIG_BPW	64
+#endif
+
 #define _NSIG_WORDS	(_NSIG / _NSIG_BPW)
 
 typedef unsigned long old_sigset_t;		/* at least 32 bits */
@@ -27,6 +38,7 @@ typedef struct {
 typedef unsigned long sigset_t;
 
 #endif /* __KERNEL__ */
+#endif /* __ASSEMBLY__ */
 
 #define SIGHUP		 1
 #define SIGINT		 2
@@ -68,13 +80,12 @@ typedef unsigned long sigset_t;
 
 /* These should not be considered constants from userland.  */
 #define SIGRTMIN	32
-#define SIGRTMAX	(_NSIG-1)
+#define SIGRTMAX	_NSIG
 
 /*
  * SA_FLAGS values:
  *
  * SA_ONSTACK indicates that a registered stack_t will be used.
- * SA_INTERRUPT is a no-op, but left due to historical reasons. Use the
  * SA_RESTART flag to get restarting signals (which were the default long ago)
  * SA_NOCLDSTOP flag to turn off SIGCHLD when children stop.
  * SA_RESETHAND clears the handler when the signal is delivered.
@@ -84,21 +95,20 @@ typedef unsigned long sigset_t;
  * SA_ONESHOT and SA_NOMASK are the historical Linux names for the Single
  * Unix names RESETHAND and NODEFER respectively.
  */
-#define SA_NOCLDSTOP	0x00000001
-#define SA_NOCLDWAIT	0x00000002 /* not supported yet */
-#define SA_SIGINFO	0x00000004
-#define SA_ONSTACK	0x08000000
-#define SA_RESTART	0x10000000
-#define SA_NODEFER	0x40000000
-#define SA_RESETHAND	0x80000000
+#define SA_NOCLDSTOP	0x00000001u
+#define SA_NOCLDWAIT	0x00000002u
+#define SA_SIGINFO	0x00000004u
+#define SA_ONSTACK	0x08000000u
+#define SA_RESTART	0x10000000u
+#define SA_NODEFER	0x40000000u
+#define SA_RESETHAND	0x80000000u
 
 #define SA_NOMASK	SA_NODEFER
 #define SA_ONESHOT	SA_RESETHAND
-#define SA_INTERRUPT	0x20000000 /* dummy -- ignored */
 
 #define SA_RESTORER	0x04000000
 
-/* 
+/*
  * sigaltstack controls
  */
 #define SS_ONSTACK	1
@@ -107,50 +117,30 @@ typedef unsigned long sigset_t;
 #define MINSIGSTKSZ	2048
 #define SIGSTKSZ	8192
 
-#ifdef __KERNEL__
+#include <asm-generic/signal.h>
 
-/*
- * These values of sa_flags are used only by the kernel as part of the
- * irq handling routines.
- *
- * SA_INTERRUPT is also used by the irq handling routines.
- * SA_SHIRQ is for shared interrupt support on PCI and EISA.
- */
-#define SA_PROBE		SA_ONESHOT
-#define SA_SAMPLE_RANDOM	SA_RESTART
-#define SA_SHIRQ		0x04000000
-#endif
+#ifndef __ASSEMBLY__
 
-#define SIG_BLOCK          0	/* for blocking signals */
-#define SIG_UNBLOCK        1	/* for unblocking signals */
-#define SIG_SETMASK        2	/* for setting the signal mask */
-
-/* Type of a signal handler.  */
-typedef void (*__sighandler_t)(int);
-
-#define SIG_DFL	((__sighandler_t)0)	/* default signal handling */
-#define SIG_IGN	((__sighandler_t)1)	/* ignore signal */
-#define SIG_ERR	((__sighandler_t)-1)	/* error return from signal */
-
-#ifdef __KERNEL__
+#ifdef __i386__
+# ifdef __KERNEL__
 struct old_sigaction {
 	__sighandler_t sa_handler;
 	old_sigset_t sa_mask;
 	unsigned long sa_flags;
-	void (*sa_restorer)(void);
+	__sigrestore_t sa_restorer;
 };
 
 struct sigaction {
 	__sighandler_t sa_handler;
 	unsigned long sa_flags;
-	void (*sa_restorer)(void);
+	__sigrestore_t sa_restorer;
 	sigset_t sa_mask;		/* mask last for extensibility */
 };
 
 struct k_sigaction {
 	struct sigaction sa;
 };
-#else
+# else /* __KERNEL__ */
 /* Here we must cater to libcs that poke about in kernel headers.  */
 
 struct sigaction {
@@ -166,10 +156,24 @@ struct sigaction {
 #define sa_handler	_u._sa_handler
 #define sa_sigaction	_u._sa_sigaction
 
-#endif /* __KERNEL__ */
+# endif /* ! __KERNEL__ */
+#else /* __i386__ */
+
+struct sigaction {
+	__sighandler_t sa_handler;
+	unsigned long sa_flags;
+	__sigrestore_t sa_restorer;
+	sigset_t sa_mask;		/* mask last for extensibility */
+};
+
+struct k_sigaction {
+	struct sigaction sa;
+};
+
+#endif /* !__i386__ */
 
 typedef struct sigaltstack {
-	void *ss_sp;
+	void __user *ss_sp;
 	int ss_flags;
 	size_t ss_size;
 } stack_t;
@@ -177,25 +181,50 @@ typedef struct sigaltstack {
 #ifdef __KERNEL__
 #include <asm/sigcontext.h>
 
+#ifdef __386__
+
 #define __HAVE_ARCH_SIG_BITOPS
 
-extern __inline__ void sigaddset(sigset_t *set, int _sig)
+#define sigaddset(set,sig)		   \
+	(__builtin_constantp(sig) ?	   \
+	 __const_sigaddset((set),(sig)) :  \
+	 __gen_sigaddset((set),(sig)))
+
+static __inline__ void __gen_sigaddset(sigset_t *set, int _sig)
 {
-	__asm__("btsl %1,%0" : "=m"(*set) : "Ir"(_sig - 1) : "cc");
+	__asm__("btsl %1,%0" : "+m"(*set) : "Ir"(_sig - 1) : "cc");
 }
 
-extern __inline__ void sigdelset(sigset_t *set, int _sig)
+static __inline__ void __const_sigaddset(sigset_t *set, int _sig)
 {
-	__asm__("btrl %1,%0" : "=m"(*set) : "Ir"(_sig - 1) : "cc");
+	unsigned long sig = _sig - 1;
+	set->sig[sig / _NSIG_BPW] |= 1 << (sig % _NSIG_BPW);
 }
 
-extern __inline__ int __const_sigismember(sigset_t *set, int _sig)
+#define sigdelset(set,sig)		   \
+	(__builtin_constant_p(sig) ?       \
+	 __const_sigdelset((set),(sig)) :  \
+	 __gen_sigdelset((set),(sig)))
+
+
+static __inline__ void __gen_sigdelset(sigset_t *set, int _sig)
+{
+	__asm__("btrl %1,%0" : "+m"(*set) : "Ir"(_sig - 1) : "cc");
+}
+
+static __inline__ void __const_sigdelset(sigset_t *set, int _sig)
+{
+	unsigned long sig = _sig - 1;
+	set->sig[sig / _NSIG_BPW] &= ~(1 << (sig % _NSIG_BPW));
+}
+
+static __inline__ int __const_sigismember(sigset_t *set, int _sig)
 {
 	unsigned long sig = _sig - 1;
 	return 1 & (set->sig[sig / _NSIG_BPW] >> (sig % _NSIG_BPW));
 }
 
-extern __inline__ int __gen_sigismember(sigset_t *set, int _sig)
+static __inline__ int __gen_sigismember(sigset_t *set, int _sig)
 {
 	int ret;
 	__asm__("btl %2,%1\n\tsbbl %0,%0"
@@ -208,14 +237,30 @@ extern __inline__ int __gen_sigismember(sigset_t *set, int _sig)
 	 __const_sigismember((set),(sig)) :	\
 	 __gen_sigismember((set),(sig)))
 
-#define sigmask(sig)	(1UL << ((sig) - 1))
-
-extern __inline__ int sigfindinword(unsigned long word)
+static __inline__ int sigfindinword(unsigned long word)
 {
 	__asm__("bsfl %1,%0" : "=r"(word) : "rm"(word) : "cc");
 	return word;
 }
 
+struct pt_regs;
+
+#define ptrace_signal_deliver(regs, cookie)		\
+	do {						\
+		if (current->ptrace & PT_DTRACE) {	\
+			current->ptrace &= ~PT_DTRACE;	\
+			(regs)->eflags &= ~TF_MASK;	\
+		}					\
+	} while (0)
+
+#else /* __i386__ */
+
+#undef __HAVE_ARCH_SIG_BITOPS
+
+#define ptrace_signal_deliver(regs, cookie) do { } while (0)
+
+#endif /* !__i386__ */
 #endif /* __KERNEL__ */
+#endif /* __ASSEMBLY__ */
 
 #endif
