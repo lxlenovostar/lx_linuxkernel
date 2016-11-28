@@ -375,7 +375,7 @@ extern int get_dumpable(struct mm_struct *mm);
 
 struct sighand_struct {
 	atomic_t		count;
-	struct k_sigaction	action[_NSIG];
+	struct k_sigaction	action[_NSIG];	/* 相当于一个信号向量表 */
 	spinlock_t		siglock;
 	wait_queue_head_t	signalfd_wqh;
 };
