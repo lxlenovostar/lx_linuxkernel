@@ -930,8 +930,12 @@ struct task_struct {
 #endif
 #endif
 
-	int prio, static_prio, normal_prio;
+	/* 表示动态优先级 */
+	int prio, normal_prio;
+	/* 表示静态优先级 */
+	int static_prio;
 	struct list_head run_list;
+	/* 表示该进程所属的调度器类 */
 	const struct sched_class *sched_class;
 	struct sched_entity se;
 
@@ -955,6 +959,7 @@ struct task_struct {
 	unsigned int btrace_seq;
 #endif
 
+	/* 调度策略, Linux 支持5个可能的值。*/
 	unsigned int policy;
 	cpumask_t cpus_allowed;
 	unsigned int time_slice;
@@ -1011,6 +1016,7 @@ struct task_struct {
 	int __user *set_child_tid;		/* CLONE_CHILD_SETTID */
 	int __user *clear_child_tid;		/* CLONE_CHILD_CLEARTID */
 
+	/* 实时进程的优先级，值越大，优先级越高。*/
 	unsigned int rt_priority;
 	cputime_t utime, stime, utimescaled, stimescaled;
 	cputime_t gtime;
