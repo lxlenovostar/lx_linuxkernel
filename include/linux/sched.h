@@ -31,7 +31,9 @@
 /*
  * Scheduling policies
  */
+/* 用于普通进程，使用完全公平调度器来处理。*/
 #define SCHED_NORMAL		0
+/* SCHED_FIFO, SCHED_RR 用于实时进程，由实时调度器类处理。*/
 #define SCHED_FIFO		1
 #define SCHED_RR		2
 #define SCHED_BATCH		3
@@ -822,15 +824,32 @@ struct uts_namespace;
 struct rq;
 struct sched_domain;
 
+/*
+  Scheduling classes are related in a flat hierarchy: 
+  Real-time processes are most important, so they are handled before completely fair processes, 
+  which are, in turn, given preference to the idle tasks that are active on a CPU when there
+  is nothing better to do. 
+ */
 struct sched_class {
+	/*  
+     The next element connects the sched_class instances of the different scheduling
+	 classes in the order. 
+     */
 	const struct sched_class *next;
 
+	/* 进程由睡眠变为可执行状态，发生此操作。 */
 	void (*enqueue_task) (struct rq *rq, struct task_struct *p, int wakeup);
 	void (*dequeue_task) (struct rq *rq, struct task_struct *p, int sleep);
+	/* 进程自愿放弃对处理器的控制权 */
 	void (*yield_task) (struct rq *rq);
 
+	/* 用一个新唤醒的进程来抢占当前进程。例如，在调用wake_up_new_task唤醒新进程时。*/
 	void (*check_preempt_curr) (struct rq *rq, struct task_struct *p);
 
+	/* 
+       pick_next_task selects the next task that is supposed to run, while put_prev_task 
+	   is called before the currently executing task is replaced with another one.
+     */
 	struct task_struct * (*pick_next_task) (struct rq *rq);
 	void (*put_prev_task) (struct rq *rq, struct task_struct *p);
 
@@ -845,8 +864,15 @@ struct sched_class {
 			      enum cpu_idle_type idle);
 #endif
 
+	/* set_curr_task is called when the scheduling policy of a task is changed. */
 	void (*set_curr_task) (struct rq *rq);
+	/* task_tick is called by the periodic scheduler each time it is activated. */
 	void (*task_tick) (struct rq *rq, struct task_struct *p);
+	/* 
+     new_task allows for setting up a connection between the fork system call and the 
+     scheduler. Each time a new task is created, the scheduler is notified about this 
+	 with new_task.
+     */
 	void (*task_new) (struct rq *rq, struct task_struct *p);
 };
 
@@ -934,6 +960,7 @@ struct task_struct {
 	int prio, normal_prio;
 	/* 表示静态优先级 */
 	int static_prio;
+	/* 实时系统中需要，用于维护包含各进程的一个运行表。*/
 	struct list_head run_list;
 	/* 表示该进程所属的调度器类 */
 	const struct sched_class *sched_class;
@@ -961,7 +988,9 @@ struct task_struct {
 
 	/* 调度策略, Linux 支持5个可能的值。*/
 	unsigned int policy;
+	/* 用来限制进程可以在哪些CPU上运行。 */
 	cpumask_t cpus_allowed;
+	/* 指定进程可使用CPU的剩余时间段。 */
 	unsigned int time_slice;
 
 #if defined(CONFIG_SCHEDSTATS) || defined(CONFIG_TASK_DELAY_ACCT)
