@@ -283,18 +283,24 @@ struct rq {
 	 * nr_running and cpu_load should be in the same cacheline because
 	 * remote CPUs use both these fields when doing load calculation.
 	 */
-	unsigned long nr_running;
+	unsigned long nr_running;	//指定了队列上可运行进程的数目，不考虑其优先级或调度类。
 	#define CPU_LOAD_IDX_MAX 5
+	/* 当前的负荷状态 */
 	unsigned long cpu_load[CPU_LOAD_IDX_MAX];
 	unsigned char idle_at_tick;
 #ifdef CONFIG_NO_HZ
 	unsigned char in_nohz_recently;
 #endif
 	/* capture load from *all* tasks on this cpu: */
+	/*
+	 load提供了就绪队列当前负荷的度量。队列的负荷本质上与队列上当前活动进程的数目成
+     正比，其中的各个进程又有优先级作为权重。每个就绪队列的虚拟时钟的速度就基于此信息。
+     */
 	struct load_weight load;
 	unsigned long nr_load_updates;
 	u64 nr_switches;
 
+	/* cfs,rt是嵌入的子就绪队列，分别用于完全公平调度器和实时调度器。用于管理进程。*/
 	struct cfs_rq cfs;
 #ifdef CONFIG_FAIR_GROUP_SCHED
 	/* list of leaf cfs_rq on this cpu: */
@@ -310,10 +316,18 @@ struct rq {
 	 */
 	unsigned long nr_uninterruptible;
 
+	/*
+     curr 指向当前运行的进程的task_struct实例
+     idle 指向idle进程的task_struct实例，该进程也叫idle线程，在无其他可运行进程时执行。
+     */
 	struct task_struct *curr, *idle;
 	unsigned long next_balance;
 	struct mm_struct *prev_mm;
 
+	/*
+     clock 和 prev_clock_raw 用于实现就绪队列自身的时钟。每次调用周期性调度器时，都会
+     更新clock的值。
+     */
 	u64 clock, prev_clock_raw;
 	s64 clock_max_delta;
 
