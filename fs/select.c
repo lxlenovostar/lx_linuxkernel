@@ -188,6 +188,7 @@ int do_select(int n, fd_set_bits *fds, s64 *timeout)
 	int retval, i;
 
 	rcu_read_lock();
+	//TODO 这个函数不明白什么意思？ 
 	retval = max_select_fd(n, fds);
 	rcu_read_unlock();
 
@@ -204,6 +205,7 @@ int do_select(int n, fd_set_bits *fds, s64 *timeout)
 		unsigned long *rinp, *routp, *rexp, *inp, *outp, *exp;
 		long __timeout;
 
+		/* TASK_INTERRUPTIBLE 针对等待某事件或其他资源的睡眠进程设置的。*/
 		set_current_state(TASK_INTERRUPTIBLE);
 
 		inp = fds->in; outp = fds->out; exp = fds->ex;
@@ -228,10 +230,12 @@ int do_select(int n, fd_set_bits *fds, s64 *timeout)
 					break;
 				if (!(bit & all_bits))
 					continue;
+				/* TODO 这个file 如何和tcp产生联想的？ */
 				file = fget_light(i, &fput_needed);
 				if (file) {
 					f_op = file->f_op;
 					mask = DEFAULT_POLLMASK;
+					/* 这里应该是tcp_poll */
 					if (f_op && f_op->poll)
 						mask = (*f_op->poll)(file, retval ? NULL : wait);
 					fput_light(file, fput_needed);
@@ -342,6 +346,7 @@ static int core_sys_select(int n, fd_set __user *inp, fd_set __user *outp,
 	fds.res_out = bits + 4*size;
 	fds.res_ex  = bits + 5*size;
 
+	/* 从应用层拷贝设置的FD */
 	if ((ret = get_fd_set(n, inp, fds.in)) ||
 	    (ret = get_fd_set(n, outp, fds.out)) ||
 	    (ret = get_fd_set(n, exp, fds.ex)))

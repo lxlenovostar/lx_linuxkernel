@@ -24,6 +24,7 @@
 #undef __FD_SETSIZE
 #define __FD_SETSIZE	1024
 
+/* 计算出总共有多少位 */
 #undef __FDSET_LONGS
 #define __FDSET_LONGS	(__FD_SETSIZE/__NFDBITS)
 
