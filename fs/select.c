@@ -188,7 +188,6 @@ int do_select(int n, fd_set_bits *fds, s64 *timeout)
 	int retval, i;
 
 	rcu_read_lock();
-	//TODO 这个函数不明白什么意思？ 
 	retval = max_select_fd(n, fds);
 	rcu_read_unlock();
 
@@ -230,12 +229,12 @@ int do_select(int n, fd_set_bits *fds, s64 *timeout)
 					break;
 				if (!(bit & all_bits))
 					continue;
-				/* TODO 这个file 如何和tcp产生联想的？ */
+				/* TODO: 这个file 如何和tcp产生联想的？ */
 				file = fget_light(i, &fput_needed);
 				if (file) {
 					f_op = file->f_op;
 					mask = DEFAULT_POLLMASK;
-					/* 这里应该是tcp_poll */
+					/* TODO: 这里应该是tcp_poll/udp_poll */
 					if (f_op && f_op->poll)
 						mask = (*f_op->poll)(file, retval ? NULL : wait);
 					fput_light(file, fput_needed);
@@ -252,6 +251,7 @@ int do_select(int n, fd_set_bits *fds, s64 *timeout)
 						retval++;
 					}
 				}
+				/* perform a process switch */
 				cond_resched();
 			}
 			if (res_in)
@@ -262,6 +262,11 @@ int do_select(int n, fd_set_bits *fds, s64 *timeout)
 				*rexp = res_ex;
 		}
 		wait = NULL;
+		/*
+		 signal_pending
+		 Returns the value 1 (true) if the process identified by the *p process descriptor has
+		 nonblocked pending signals, and returns the value 0 (false) if it doesn't. 
+         */
 		if (retval || !*timeout || signal_pending(current))
 			break;
 		if(table.error) {
