@@ -230,11 +230,22 @@ int do_select(int n, fd_set_bits *fds, s64 *timeout)
 				if (!(bit & all_bits))
 					continue;
 				/* TODO: 这个file 如何和tcp产生联想的？ */
+				/*
+                 struct socket_alloc {
+    				struct socket socket;
+    				struct inode vfs_inode;
+				 };
+			
+				 TODO: file 的f_op 和 inode 的 i_fop 有什么关系。
+                 */
 				file = fget_light(i, &fput_needed);
 				if (file) {
 					f_op = file->f_op;
 					mask = DEFAULT_POLLMASK;
-					/* TODO: 这里应该是tcp_poll/udp_poll */
+					/*  
+					 这里应该是tcp_poll/udp_poll 
+                     udp的接收应该会调用skb_recv_datagram 
+					*/
 					if (f_op && f_op->poll)
 						mask = (*f_op->poll)(file, retval ? NULL : wait);
 					fput_light(file, fput_needed);
