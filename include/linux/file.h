@@ -27,7 +27,7 @@ struct embedded_fd_set {
 };
 
 struct fdtable {
-	unsigned int max_fds;
+	unsigned int max_fds;	/* 指定了进程当前可以处理的文件对象和文件描述符的最大数目。*/
 	struct file ** fd;      /* current fd array */
 	fd_set *close_on_exec;
 	fd_set *open_fds;
