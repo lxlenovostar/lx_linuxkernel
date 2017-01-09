@@ -229,8 +229,15 @@ int do_select(int n, fd_set_bits *fds, s64 *timeout)
 					break;
 				if (!(bit & all_bits))
 					continue;
-				/* TODO: 这个file 如何和tcp产生联想的？ */
-				/*
+				/* 
+					这个file 如何和tcp产生联想的？ 
+					套接字初始化的时候 sys_socket 以及函数 sock_attach_fd.
+                 */
+
+				/* 
+				 TODO inode 和 file 关系 ？
+				 TODO inode 如何和tcp产生联想的？ 
+				 这个结构体用来做什么？ 
                  struct socket_alloc {
     				struct socket socket;
     				struct inode vfs_inode;
@@ -238,6 +245,10 @@ int do_select(int n, fd_set_bits *fds, s64 *timeout)
 			
 				 TODO: file 的f_op 和 inode 的 i_fop 有什么关系。
                  */
+				/*
+				 应用层利用文件描述符，和current的files_struct 和 fdtable结构体就可以找到
+                 struct file数组，并返回相应的file.
+				 */
 				file = fget_light(i, &fput_needed);
 				if (file) {
 					f_op = file->f_op;

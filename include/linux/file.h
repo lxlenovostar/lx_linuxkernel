@@ -26,15 +26,30 @@ struct embedded_fd_set {
 	unsigned long fds_bits[1];
 };
 
+/*
+ struct fdtable 中的成员变量都是指向 struct files_struct.
+ */
 struct fdtable {
 	unsigned int max_fds;	/* 指定了进程当前可以处理的文件对象和文件描述符的最大数目。*/
+	/*
+     fd 是一个指针数组，每个数组项指向一个file结构的实例，管理一个打开文件的所有信息。
+	 用户空间进程的文件描述符充当数组索引。该数组当前的长度由max_fds定义。
+     */
 	struct file ** fd;      /* current fd array */
+    /*
+     close_on_exec 是一个指向位域的指针，该位域与系统调用exec有关。
+     */
 	fd_set *close_on_exec;
+	/*
+	 open_fds 是一个指向位域的指针，该位域管理着当前所有打开文件的描述符。每个文件描述符
+     都对应一个比特位。如果该比特位置位，则对应的文件描述符处于使用中。
+     */
 	fd_set *open_fds;
 	struct rcu_head rcu;
 	struct fdtable *next;
 };
 
+/* 包含了当前进程的各个文件描述符 */
 /*
  * Open file table structure
  */

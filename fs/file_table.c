@@ -80,6 +80,7 @@ int proc_nr_files(ctl_table *table, int write, struct file *filp,
 }
 #endif
 
+/* 用于分配 struct file 实例 */
 /* Find an unused file structure and return a pointer to it.
  * Returns NULL, if there are no more free file structures or
  * we run out of memory.

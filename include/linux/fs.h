@@ -783,6 +783,9 @@ static inline int ra_has_index(struct file_ra_state *ra, pgoff_t index)
 		index <  ra->start + ra->size);
 }
 
+/*
+ 该结构保存了内核所看到的文件的特征信息 
+ */
 struct file {
 	/*
 	 * fu_list becomes invalid after file_free is called and queued via
@@ -792,18 +795,44 @@ struct file {
 		struct list_head	fu_list;
 		struct rcu_head 	fu_rcuhead;
 	} f_u;
+	/*
+	 f_path 封装了下面两部分信息：
+     1. 文件名和inode之间的关联
+     2. 文件所在文件系统的有关信息 
+	 */
 	struct path		f_path;
 #define f_dentry	f_path.dentry
 #define f_vfsmnt	f_path.mnt
+	/* f_op specifies the functions invoked for file operations. */
 	const struct file_operations	*f_op;
 	atomic_t		f_count;
+	/* f_flags specifies additional flags that can be passed on the open system call. */
 	unsigned int 		f_flags;
+	/*
+	 The mode passed when a file is opened (generally read, write, or read and write 
+     access) is held in the f_mode field.
+     */
 	mode_t			f_mode;
+	/*
+	 The current position of the file pointer (which is important for sequential read operations or
+	 when reading a specific file section) is held in the f_pos variable as a byte offset from the 
+     beginning of the file.
+	 */
 	loff_t			f_pos;
+	/* 包含了处理该文件的进程有关的信息 */
 	struct fown_struct	f_owner;
+	/* f_uid and f_gid specify the UID and the GID of the user. */
 	unsigned int		f_uid, f_gid;
+	/* 
+	 The readahead characteristics are held in f_ra. These values specify if and how file data are to
+	 be read in anticipation before they are actually requested (readahead improves system performance).
+     */
 	struct file_ra_state	f_ra;
 
+	/*
+	 f_version is used by filesystems to check whether a file instance is still compatible with the
+	 contents of the associated inode. This is important to ensure the consistency of cached objects.
+     */
 	u64			f_version;
 #ifdef CONFIG_SECURITY
 	void			*f_security;
@@ -816,6 +845,10 @@ struct file {
 	struct list_head	f_ep_links;
 	spinlock_t		f_ep_lock;
 #endif /* #ifdef CONFIG_EPOLL */
+	/*  
+	 mapping points to the address space mapping that belongs to the inode instance with which
+	 the file is associated.
+	 */
 	struct address_space	*f_mapping;
 };
 extern spinlock_t files_lock;
