@@ -588,6 +588,12 @@ static inline int mapping_writably_mapped(struct address_space *mapping)
 #define i_size_ordered_init(inode) do { } while (0)
 #endif
 
+/*
+ The inode structure is used by the kernel internally to represent files. 
+ Therefore, it is different from the file structure that represents an open 
+ file descriptor. There can be numerous file structures representing multiple 
+ open descriptors on a single file, but they all point to a single inode structure.
+ */
 struct inode {
 	struct hlist_node	i_hash;
 	struct list_head	i_list;
