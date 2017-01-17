@@ -16,6 +16,10 @@
 typedef __u32 __kernel_dev_t;
 
 typedef __kernel_fd_set		fd_set;
+/*
+ dev_t 是一个32位的数，其中12位用来表示主设备号，而其余20位用来表示次
+ 设备号。
+ */
 typedef __kernel_dev_t		dev_t;
 typedef __kernel_ino_t		ino_t;
 typedef __kernel_mode_t		mode_t;
