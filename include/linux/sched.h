@@ -1005,6 +1005,10 @@ struct task_struct {
 	struct list_head ptrace_children;
 	struct list_head ptrace_list;
 
+	/* 
+	 当 task_struct 表示为内核线程的时候，mm为NULL，而active_mm用于表示用户空间
+     当前包含了什么。
+	 */
 	struct mm_struct *mm, *active_mm;
 
 /* task state */
