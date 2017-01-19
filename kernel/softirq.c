@@ -234,6 +234,10 @@ restart:
 	/* Reset the pending bitmask before enabling irqs */
 	set_softirq_pending(0);
 
+	/* 
+	 Enables local interrupt delivery 
+	 从这里开始是允许中断，来修改软中断的位图 
+     */
 	local_irq_enable();
 
 	h = softirq_vec;
@@ -247,12 +251,26 @@ restart:
 		pending >>= 1;
 	} while (pending);
 
+	/* Disables local interrupt delivery */
 	local_irq_disable();
 
+	/*
+	 Once all marked softIRQs have been serviced, the kernel checks whether 
+	 new softIRQs have been marked in the original bitmap in the meantime. 
+     At least one softIRQ not serviced in the previous cycle must remain, and 
+     the number of restarts must not exceed MAX_SOFTIRQ_RESTART (usually set to 10). 
+	 If this is the case, the marked softIRQs are again processed in sequence. This 
+     operation is repeated until no new unprocessed softIRQs remain after execution 
+     of all handlers.
+     */
 	pending = local_softirq_pending();
 	if (pending && --max_restart)
 		goto restart;
 
+	/*
+	 Should softIRQs still remain after the MAX_SOFTIRQ_RESTART time of restarting 
+	 the processing, wakeup_softirqd is called to wake up the softIRQ daemon.
+	 */
 	if (pending)
 		wakeup_softirqd();
 
@@ -269,16 +287,30 @@ asmlinkage void do_softirq(void)
 	__u32 pending;
 	unsigned long flags;
 
+	/*
+	 The function first ensures that it is not in the interrupt context (meaning, 
+	 of course, that a hardware interrupt is involved). If it is, it terminates 
+     immediately. Because softIRQs are used to execute timeuncritical parts of ISRs, 
+     the code itself must not be called within an interrupt handler.
+     */
 	if (in_interrupt())
 		return;
 
+	/*
+	 Saves the current state of local interrupt delivery and then disables it.
+	 */
 	local_irq_save(flags);
 
+	/*
+	 With the help of local_softirq_pending, the bitmap of all softIRQs set on the 
+     current CPU is determined. If any softIRQ is waiting to be processed, then __do_softirq is called.
+	 */
 	pending = local_softirq_pending();
 
 	if (pending)
 		__do_softirq();
 
+	/* Restores local interrupt delivery to the given state. */
 	local_irq_restore(flags);
 }
 
@@ -310,6 +342,9 @@ void irq_exit(void)
 	account_system_vtime(current);
 	trace_hardirq_exit();
 	sub_preempt_count(IRQ_EXIT_OFFSET);
+	/*
+	 假定内核此时已经不在中断状态，调用do_softirq来处理待决的软中断。
+	 */
 	if (!in_interrupt() && local_softirq_pending())
 		invoke_softirq();
 
@@ -341,6 +376,11 @@ inline fastcall void raise_softirq_irqoff(unsigned int nr)
 		wakeup_softirqd();
 }
 
+/*
+ raise_softirq(int nr) is used to raise a software interrupt (similarly to 
+ a normal interrupt). The number of the desired softIRQ is passed as a parameter.
+ 此函数可以在中断上下文中调用，或者使用wakeup_softirqd来唤醒软中断守护进程。
+ */
 void fastcall raise_softirq(unsigned int nr)
 {
 	unsigned long flags;
@@ -500,6 +540,10 @@ static int ksoftirqd(void * __bind_cpu)
 
 	while (!kthread_should_stop()) {
 		preempt_disable();
+		/*
+		 the daemon first checks whether marked softIRQs are pending, as otherwise
+		 control can be passed to another process by explicitly invoking the scheduler.
+		 */
 		if (!local_softirq_pending()) {
 			preempt_enable_no_resched();
 			schedule();
@@ -508,6 +552,13 @@ static int ksoftirqd(void * __bind_cpu)
 
 		__set_current_state(TASK_RUNNING);
 
+		/*
+		 If there are marked softIRQs, the daemon gets on with servicing them. In a while loop 
+		 the two functions do_softirq and cond_resched are invoked repeatedly until no marked 
+		 softIRQS remain. cond_resched ensures that the scheduler is called if the TIF_NEED_RESCHED 
+		 flag was set for the current process. This is possible because all functions execute with 
+		 enabled hardware interrupts.
+		 */
 		while (local_softirq_pending()) {
 			/* Preempt disable stops cpu going offline.
 			   If already offline, we'll be on wrong CPU:
